@@ -7,10 +7,11 @@ if [  -n "$msBinDir" ]; then
 	if [ "$msSrc" != "$myCurDIR" ]; then 
 		echo "Hint, try reseting your (terminal) session and its settings"; 
 	fi
-elif ! [ -f $myCurDIR/Makefile ]; then
-	echo "Error: $myCurDIR does not seem to be a source directory."
-	echo "       Makefile does not exists."; 
 else
+	if ! [ -d $myCurDIR/../src ]; then
+		echo "Warning: $myCurDIR does not look like a source directory,"
+		echo "         $myCurDIR/../src/ does not exist!"
+	fi
 
 	export msSrc="$myCurDIR"
 	export msRoot=$( cd "$msSrc/../" && pwd )
