@@ -9,20 +9,22 @@ tstDir=$1;   tstApp=$2;  tstInp=$3;  apsDir=$4
 
 if [ -z "$apsDir" ]; then  apsDir=$(cd "$(dirname ${BASH_SOURCE[0]})/../.." && pwd);  fi
 
-if [ -z "$msRoot" ]; then  echo "source  $apsDir/src/script/bashrc"; source  $apsDir/src/script/bashrc
+if [ -z "$msInst" ] || ! [  "$PATH" == *"$msInst/bin"* ] ; then  echo "source  $apsDir/src/script/bashrc";
+	source  $apsDir/src/script/bashrc
 else                       [ "$msRoot" == "$apsDir" ] || exit ; fi
+
 
 checkErr()
 {
-  Er="$(grep -E Error\|terminate\|Aborting\|': error' $1 || true)" # grep returns 1 (==false) if no match found
+  Er="$(grep -E '\bError|\bterminate|\bAborting|: error' $1 || true)" # grep returns 1 (==false) if no match found
   task=" $(echo $1 | sed 's/log\./  /') *** \n\n"
-  
+
   if [ $2 != 0 ]; then    Er+="  Exit code: $2"; fi
 
-  if [ -z "$Er" ]; then    printf "\n *** Succeed @$task"; 
-  else echo "'$Er', in: $1"; printf "\n ***  Failed @$task" ;   fi
+  if [ -z "$Er" ]; then    printf "\n *** Succeed @$task";
+  else echo "'$Er', see: $1"; printf "\n ***  Failed @$task" ;   fi
   if xhost >/dev/null 2>&1 ; then
-    if [ -z "$Er" ]; then  notify-send "Succeed @$task" & 
+    if [ -z "$Er" ]; then  notify-send "Succeed @$task" &
     else                   notify-send " Failed @$task" & geany "$1" || gedit "$1";  fi
   fi
 }

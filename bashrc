@@ -1,25 +1,23 @@
 #!/bin/bash
 
 
-myCurDIR=$(cd "$(dirname ${BASH_SOURCE[0]})/.." && pwd)
-if [  -n "$msBinDir" ]; then
-	echo "Info: msSrc(=$msSrc) is NOT reset from $myCurDIR"
-	if [ "$msSrc" != "$myCurDIR" ]; then 
-		echo "Hint, try reseting your (terminal) session and its settings"; 
+myUprDIR=$(cd "$(dirname ${BASH_SOURCE[0]})/.." && pwd)
+if [  -n "$msInst" ] && [  "$PATH" == *"$msInst/bin"* ]; then
+	echo "Info: msSrc(=$msSrc) is NOT reset from $myUprDIR"
+	if [ "$msSrc" != "$myUprDIR" ]; then
+		echo "Hint, try reseting your (terminal) session and its settings";
 	fi
 else
-	if ! [ -d $myCurDIR/../src ]; then
-		echo "Warning: $myCurDIR does not look like a source directory,"
-		echo "         $myCurDIR/../src/ does not exist!"
-	fi
 
-	export msSrc="$myCurDIR"
+	export msSrc="$myUprDIR"
 	export msRoot=$( cd "$msSrc/../" && pwd )
-	export msBinDir=$msRoot/bin
-	export msLibDir=$msRoot/lib
-	export msIncDir=$msRoot/include
-	export msBilDir=$msRoot/build
-	export msTstDir=$msRoot/test
+	export msInst=$( cd "$msSrc/../" && pwd )
+	[ "$msInst" != "$HOME" ] || ! echo "Bad msInst: $msInst, put apps inside another subfolder and try again" || return
+	export msBinDir=$msInst/bin
+	export msLibDir=$msInst/lib
+	export msIncDir=$msInst/include
+	export msBilDir=$msInst/build
+	export msTstDir=$msInst/test
 
 	# maybe safer to prepend PATHs?
 	export PATH=$PATH:$msSrc/script
@@ -29,29 +27,15 @@ else
 	export PATH=$PATH:$msBinDir
 
 
-	if ! [ -d $msBinDir ]; then  
-		mkdir -p $msBinDir;   
-		mkdir -p $msLibDir; 
-		mkdir -p $msIncDir;   
-	fi
-
-
-
-	if [ -z "$WM_PROJECT" ] ; then
-		# Openfoam settings:
-		# Change according to your openfoam installation directory
-		#export WM_NCOMPPROCS=28
-		#export FOAM_INST_DIR=$(cd $myUpperDIR/../pkgs && pwd)
-		export FOAM_INST_DIR=$msRoot/pkgs
-		source $FOAM_INST_DIR/foamx4m/etc/bashrc
-	elif [[ "$WM_PROJECT_DIR" != "$msRoot/"*"/foamx4m" ]]; then
-		printf "\n *** Using OpenFOAM:  $WM_PROJECT_DIR,  If you meant to use foamx4m instead, deactivate this and re-source in a new terminal.\n\n"
-	fi
 	export PATH=$PATH:$msBinDir/foamx4m
 	export FOAM_ABORT=1
 
 	export PYTHONPATH=$msSrc/script:$msSrc/pylib:$PYTHONPATH
 
+	if ! [ -d $msBinDir ]; then
+		mkdir -p $msBinDir;
+		mkdir -p $msLibDir;
+		mkdir -p $msIncDir;
+	fi
+
 fi
-
-

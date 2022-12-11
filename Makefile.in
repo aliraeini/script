@@ -15,23 +15,12 @@ else
 # msCFLAGS += -std=c++11 -MMD -MP
 endif
 
-# msSrc=
-# msRoot=
-# msBinDir=
-
-#FIXME: MPICPP = mpic++
-
-############# set via makefile of individual applications ##############
-
-# USE_TIFF=1
-# USE_ZLIB=1
-# USE_OMP=1
-
 
 ########################### Cross-compile ############################
 ifeq "${OPT}" ".exe"
   preCC=x86_64-w64-mingw32-
-  msCXX=${preCC}g++
+  msCXX=${preCC}g++-posix
+  msCFLAGS += -D_FILE_OFFSET_BITS=64
   msLFLAGS += -static -static-libstdc++ -static-libgcc
   $(info msCXX=$(msCXX))
 endif
@@ -42,20 +31,21 @@ endif
 
 
 #link relative path to exe
-#msCFLAGS ?= -Wl,-rpath,'$ORIGIN/../lib' 
+#msCFLAGS ?= -Wl,-rpath,'$ORIGIN/../lib'
 
 ifndef msSrc  # set msSrc to upper directory if not already set
  msSrc := $(abspath $(lastword $(MAKEFILE_LIST))/../..)
  $(info msSrc set to ${msSrc})
 endif
 
-msRoot ?= $(abspath ${msSrc}/..)
 
-# set msBinDir if not set
-msBinDir ?= ${msRoot}/bin
-msLibDir ?= ${msRoot}/lib
-
-
+# set msBinDir if not set, msInst is also set from .msRoot for .exe OPT
+export msInst ?= $(abspath ${msSrc}/..)
+export msRoot ?= $(abspath ${msSrc}/..)
+export msBinDir ?= ${msInst}/bin
+export msLibDir ?= ${msInst}/lib
+export msBilDir ?= ${msInst}/build
+export msTstDir ?= ${msInst}/test
 
 
 # set thirdparty pkgs directory if not set
@@ -73,17 +63,15 @@ ifneq ($(MAKECMDGOALS),clean) ############### if not cleaning  ###############:
 msReleaseDate ?= \"$(shell date +'%Y.%m.%d')\"
 
 
-msCFLAGS += -I${msSrc}/include -I${msRoot}/include -DRELEASE_DATE=$(msReleaseDate) -D_FILE_OFFSET_BITS=64
+msCFLAGS += -I${msSrc}/include -I${msInst}/include -DRELEASE_DATE=$(msReleaseDate) -D_FILE_OFFSET_BITS=64
 msLFLAGS += -L$(msLibDir)
 
 
-InDir=In $(notdir $(abspath $(dir $(PWD))))/$(notdir $(PWD)): ***  
+InDir=In $(notdir $(abspath $(dir $(PWD))))/$(notdir $(PWD)): ***
 
 
 ifeq (${USE_VXIMG},1)
- ifdef USED_VXLIB
-   $(info $(InDir) using voxlib instead of libvoxel)
- else 
+ ifndef USED_VXLIB
    msCFLAGS += -I${msSrc}/libvoxel
  endif
 endif
@@ -91,23 +79,23 @@ endif
 
 # set libtiff install directory: TIFDIR
 ifdef USE_TIFF
- TIFDIR?=${msRoot}
+ TIFDIR?=${msInst}
  ifneq ("$(wildcard ${TIFDIR}/include/tiff.h)","")
-   msCFLAGS += -I${TIFDIR}/include -DTIFLIB 
+   msCFLAGS += -I${TIFDIR}/include -DTIFLIB
    msLFLAGS += -L${TIFDIR}/libtiff -ltiff -ltiffxx
 
    ifneq ($(shell ${msCXX} -ljpeg 2>&1 | grep ljpeg > /dev/null; echo $$?),0)
-       msLFLAGS += -ljpeg 
+       msLFLAGS += -ljpeg
    #else
      #$(info ignoring jpeg)
    endif
 
    ifneq ($(shell ${msCXX} -llzma 2>&1 | grep llzma > /dev/null; echo $$?),0)
-      msLFLAGS += -llzma 
+      msLFLAGS += -llzma
    endif
 
  else
-   $(info $(InDir) tiff.h not found in ${TIFDIR}/include, nor in ${msRoot}/include/, ignoring USE_TIFF)
+   $(info $(InDir) tiff.h not found in ${TIFDIR}/include, nor in ${msInst}/include/, ignoring USE_TIFF)
  endif
 endif
 
@@ -116,12 +104,12 @@ endif
 # set zlib directory
 # Note: ${ZLIBDIR}/contrib/iostream3/zfstream.h should be installed too
 ifdef USE_ZLIB
- ZLIBDIR?=${msRoot}
+ ZLIBDIR?=${msInst}
  ifneq ("$(wildcard ${ZLIBDIR}/include/zlib.h)","")
    msCFLAGS += -I${ZLIBDIR}/include -DZLIB
    msLFLAGS += -L${ZLIBDIR}/lib -lz
  else
-   $(info $(InDir) ZLIBDIR, ${ms3rd}/zlib/zlib.h, not found, ignoring USE_ZLIB)
+   $(info InstDir: $(msInst)  ${ZLIBDIR}/include/zlib.h, not found, ignoring USE_ZLIB)
  endif
 endif
 
@@ -129,13 +117,13 @@ endif
 
 # set hypre directory, also gnflow multithreading
 ifdef USE_HYPRE
- HYPREDIR=${msRoot}
+ HYPREDIR=${msInst}
  ifeq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
    HYPREDIR=${ms3rd}/hypre/src/hypre
  endif
  ifneq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
-  msCFLAGS += -DHAVE_CONFIG_H -DHYPRE_TIMING -I${HYPREDIR}/include  -DMULTITHREAD
-  msLFLAGS += -pthread  ${HYPREDIR}/lib/libHYPRE.a 
+  msCFLAGS += -DHAVE_CONFIG_H -DHYPRE_TIMING -I${HYPREDIR}/include
+  msLFLAGS += -pthread  ${HYPREDIR}/lib/libHYPRE.a
  else
    $(info $(InDir))
    $(error HYPREDIR, ${HYPREDIR}/include/HYPRE.h, not found)
@@ -146,13 +134,13 @@ endif
 
 # set hypre directory, also gnflow multithreading -DMULTITHREAD
 ifdef USE_HYPRESEQ
- HYPREDIR=${msRoot}
+ HYPREDIR=${msInst}
  ifeq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
    HYPREDIR=${ms3rd}/hypre/src/hypre
  endif
  ifneq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
-  msCFLAGS += -DHAVE_CONFIG_H -DHYPRE_TIMING -I${HYPREDIR}/include
-  msLFLAGS += -pthread  ${HYPREDIR}/lib/libHYPRESeq.a 
+  msCFLAGS += -DLIBHYPRE -DHAVE_CONFIG_H -DHYPRE_TIMING -I${HYPREDIR}/include
+  msLFLAGS += -pthread  ${HYPREDIR}/lib/libHYPRESeq.a
  else
    $(info $(InDir))
    $(error HYPREDIR, ${HYPREDIR}/include/HYPRE.h, not found)
@@ -162,7 +150,7 @@ endif
 
 
 
-# svplot not released yet
+# svplot not public domain yet
 ifdef USE_SVG
  ifneq ("$(wildcard ${ms3rd}/svplot/svplot.hpp)","")
    msCFLAGS += -I${ms3rd}/svplot -DSVG
@@ -175,19 +163,16 @@ endif
 
 
 
-
-
-
 ifneq "${OPT}" ".exe"
- # set openMP for parallel image processing, mesh generation ... 
- # not yet fully integrated with the "released" codes due to portability issues / being experimental 
- ifdef USE_OMP 
+ # set openMP for parallel image processing, mesh generation ...
+ # not yet fully integrated with the "released" codes due to portability issues / being experimental
+ ifdef USE_OMP
   msCFLAGS += -DOpenMP $(shell mpic++ -showme:compile) -fopenmp
   msLFLAGS += $(shell mpic++ -showme:link)  -fopenmp
  endif
 else
  msLFLAGS += -static -lstdc++ -lm   -lstdc++fs
- ifdef USE_OMP 
+ ifdef USE_OMP
   msCFLAGS += -DOpenMP -fopenmp
   msLFLAGS += -fopenmp
  endif
@@ -197,7 +182,7 @@ endif
 
 
 ifeq ($(USE_XDMF),1)
-   msCFLAGS += -I${msSrc}/Xdmf -DXDMF  
+   msCFLAGS += -I${msSrc}/Xdmf -DXDMF
 endif
 
 
@@ -208,7 +193,7 @@ endif                        ###############  if not cleaning  ###############:
 
 
 ifeq "${OPT}" "dbg"
- msCFLAGS += -g -fno-inline  -D_debugCompile_  -D_extraCompile_ ${CFLAGSExtra} 
+ msCFLAGS += -g -fno-inline  -D_debugCompile_  -D_extraCompile_ ${CFLAGSExtra}
 else
  msCFLAGS += -O3  ${CFLAGSExtra}
 endif
@@ -217,26 +202,22 @@ endif
 # check and otherwise set default name for executable
 makFilDir:=${CURDIR}
 ifndef exec
- exec:=$(shell basename ${CURDIR})${OPT}
+ exec=$(shell basename ${CURDIR})${OPT}
 endif
+bildDir ?= ${msBilDir}/${exec}
 
-
-# set build and test directories here, lib and bin are set through bashrc file
-msBuildDir ?= ${msRoot}/build/${exec}
-msTestDir ?= ${msRoot}/test/${exec}
 
 psAppDirs:
-	$(info  BuildDir: ${msBuildDir},   BinDir: $(msBinDir))
-	@mkdir -p $(msBinDir)
-	@mkdir -p ${msBuildDir}
+	@echo  BuildDir: ${bildDir},   BinDir: ${msBinDir}
+	@mkdir -p ${msBinDir}
+	@mkdir -p ${msBinDir}/foamx4m
+	@mkdir -p ${bildDir}
 
 msLibDirs:
-	$(warning  BuildDir: ${msBuildDir},  LibDir: $(msLibDir))
+	$(warning  BuildDir: ${bildDir},  LibDir: $(msLibDir))
 	@mkdir -p $(msLibDir)
-	@mkdir -p ${msBuildDir}
+	@mkdir -p ${bildDir}
 
-msTstDirs:
-	@mkdir -p ${msTestDir}
 
 
 
@@ -255,7 +236,7 @@ ifdef USE_MINIFOAMX3  #######################################################:
   WM_MPLIB   ?= SYSTEMOPENMPI
   include $(WM_PROJECT_DIR)/wmake/rules/linux64Gcc/mplib$(WM_MPLIB)
   GFLAGS += -DFOAMX
-  OFInsDIR=${msRoot}
+  OFInsDIR=${msInst}
  else
   $(info WM_PROJECT_DIR= $(WM_PROJECT_DIR))
   WM_PROJECT ?= OpenFOAM
@@ -263,46 +244,37 @@ ifdef USE_MINIFOAMX3  #######################################################:
   GFLAGS = -DWM_LABEL_SIZE=32
   SO  = so
   OFInsDIR=${WM_PROJECT_DIR}/platforms/${WM_ARCH}${WM_COMPILER}${WM_PRECISION_OPTION}Int${WM_LABEL_SIZE}Opt
-  msLFLAGS += -L${OFInsDIR}/lib   
+  msLFLAGS += -L${OFInsDIR}/lib
   msLFLAGS += -L${OFInsDIR}/lib/openmpi-system -Wl,-rpath=${OFInsDIR}/lib/openmpi-system -l:libPstream.$(SO)
  endif
 
-  # $(info WM_PROJECT_DIR= $(WM_PROJECT_DIR))
 
   LIB_SRC            = $(WM_PROJECT_DIR)/src
-  GFLAGS     += -D$(WM_ARCH) -DWM_$(WM_PRECISION_OPTION) 
+  GFLAGS     += -D$(WM_ARCH) -DWM_$(WM_PRECISION_OPTION)
 
   GFLAGS += -Wall -Wextra -Wno-unused-parameter -Wnon-virtual-dtor  -DNoRepository -ftemplate-depth-200
-  #$(info GFLAGS: $(GFLAGS))
 
   msCFLAGS += $(PFLAGS) $(PINC) $(GFLAGS)
-  $(info  using of=$(OFInsDIR) msCFLAGS=$(msCFLAGS) )
+  #$(info  using of=$(OFInsDIR) msCFLAGS=$(msCFLAGS) )
 
 
 
   findOFsubdirs = $(shell find $(LIB_SRC)/$(dir) -type d ! -name 'lnInclude' -exec realpath --relative-to . {} \;)
   ofIncDirs = $(foreach dir,$(OFincs) $(WM_PROJECT) OSspecific/$(WM_OSTYPE),$(findOFsubdirs))
-  OFCFLAGS += $(addprefix -I,$(ofIncDirs)) 
-#  $(info $(ofIncDirs))
-  
-  msLFLAGS += $(PLIBS) -Wl,-rpath=${OFInsDIR}/lib  $(addprefix -l:lib,$(addsuffix .$(SO),$(OFlibs) $(WM_PROJECT)))   
+  OFCFLAGS += $(addprefix -I,$(ofIncDirs))
+
+  msLFLAGS += $(PLIBS) -Wl,-rpath=${OFInsDIR}/lib  $(addprefix -l:lib,$(addsuffix .$(SO),$(OFlibs) $(WM_PROJECT)))
 
 
-  OFObj2C = $(subst ${msBuildDir}/,,$(subst __,/,$(subst ++,..,$(subst .Obj,.C,$@))))
-  OFC2Obj = $(addprefix ${msBuildDir}/,$(subst /,__,$(subst ..,++,$(OFCs:.C=.Obj))))
-  OFC2dep = $(addprefix ${msBuildDir}/,$(subst /,__,$(subst ..,++,$(OFCs:.C=.d))))
-  
+  OFObj2C = $(subst ${bildDir}/,,$(subst __,/,$(subst ++,..,$(subst .Obj,.C,$@))))
+  OFC2Obj = $(addprefix ${bildDir}/,$(subst /,__,$(subst ..,++,$(OFCs:.C=.Obj))))
+  OFC2dep = $(addprefix ${bildDir}/,$(subst /,__,$(subst ..,++,$(OFCs:.C=.d))))
+
   objs += $(OFC2Obj)
   deps += $(OFC2dep)
 else
   SO         ?= .so
 endif  # USE_MINIFOAMX3  #######################################################:
-
-
-
-
-
-
 
 
 
@@ -322,13 +294,8 @@ endif  # USE_MINIFOAMX3  #######################################################
 ifdef   USE_msRecurse ############# run make in subfolders ###################:
 makls=$(shell find */ -maxdepth 1 -type f | grep -e    /makefile$$     | grep -v [\ \(\)] | grep -v [-]/ | sed s/\\/makefile//g)
 makes=$(shell find */ -maxdepth 1 -type f | grep -e    /Makefile$$     | grep -v [\ \(\)] | grep -v [-]/ | sed s/\\/Makefile//g)
-# cmaks=$(shell find */ -maxdepth 1 -type f | grep -e /CMakeLists.txt$$  | grep -v [\ \(\)] | grep -v [-]/ | sed s/\\/CMakeLists.txt//g)
 
-recurseMakeLibs: $(addprefix make_,${makls}) 
-
-recurseMakeExes: $(addprefix make_,${makes}) 
-
-recurseMake: 
+recurseMake:
 	@$(MAKE) -f ${msSrc}/script/Makefile.in recurseMakeLibs USE_msRecurse=1
 	@$(MAKE) -f ${msSrc}/script/Makefile.in recurseMakeExes USE_msRecurse=1
 	@printf '\n*  ${makls}  ${makes}  :/ \n\n'
@@ -336,14 +303,15 @@ recurseMake:
 recurseClean: $(addprefix clean_,${makes})
 	@printf '\n* $^ :/\n\n'
 
-# msBilDir ?= $msRoot/build
-# cm2xe = $(@:cmak_%=%)
-# cmak_%:; @printf '\n$@: \n'
-#	 (cd  $(cm2xe)  && $(MAKE)  USE_msRecurse='')
-#	 mkdir -p ${msBilDir}/$(cm2xe) 
-#	 cmake -S$(PWD)/$(cm2xe)   -B${msBilDir}/$(cm2xe)
-#	 cmake --build ${msBilDir}/$(cm2xe) -j
-#	 cmake --install  ${msBilDir}/$(cm2xe)
+
+recurseTest: $(addprefix test_,${makes})
+	@printf '\n* $^ :/\n\n'
+
+
+
+recurseMakeLibs: $(addprefix make_,${makls})
+
+recurseMakeExes: $(addprefix make_,${makes})
 
 make_%:; @printf '\n$@: \n'
 	@(cd  $(@:make_%=%)  && $(MAKE)  USE_msRecurse='')
@@ -351,9 +319,14 @@ make_%:; @printf '\n$@: \n'
 clean_%:; @printf '\n$@: \n'
 	@(cd  $(@:clean_%=%) && $(MAKE) clean  USE_msRecurse='' || echo '  check clean target for $(PWD)/$(@:clean_%=%)' )
 
+test_%:; @printf '\n$@: \n'
+	@(cd  $(@:test_%=%) && $(MAKE) test  USE_msRecurse='' || echo '  check test target for $(PWD)/$(@:test_%=%)' )
+
+
 else
   recurseMake:  ; $(error recurseMake  target requested without USE_msRecurse=1, $^)
   recurseClean: ; $(error recurseClean target requested without USE_msRecurse=1, $^)
+  recurseTest:  ; $(error recurseTest  target requested without USE_msRecurse=1, $^)
 endif  # USE_msRecurse  #####################################################:
 
 
@@ -361,43 +334,45 @@ endif  # USE_msRecurse  #####################################################:
 
 
 ifdef   USE_SINGLECPP   ################ single-source .cpp app ##################:
- $(info  Single-source apps)
- cpp2d := $(addprefix ${msBuildDir}/,$(subst /,__,$(subst ..,++,$(srcs:.cpp=.d))))
- cpp2o = $(addprefix ${msBuildDir}/,$(subst /,__,$(subst ..,++,$(@:.cpp=.o))))
- cps2o := $(addprefix ${msBuildDir}/,$(subst /,__,$(subst ..,++,$(srcs:.cpp=.o))))
- o2cpp = $(subst ${msBuildDir}/,$(CURDIR)/,$(subst __,/,$(subst ++,..,$(subst .o,.cpp,$@))))
+ cpp2d := $(addprefix ${bildDir}/,$(subst /,__,$(subst ..,++,$(srcs:.cpp=.d))))
+ cpp2o = $(addprefix ${bildDir}/,$(subst /,__,$(subst ..,++,$(@:.cpp=.o))))
+ cps2o := $(addprefix ${bildDir}/,$(subst /,__,$(subst ..,++,$(srcs:.cpp=.o))))
+ o2cpp = $(subst ${bildDir}/,$(CURDIR)/,$(subst __,/,$(subst ++,..,$(subst .o,.cpp,$@))))
 
-${msBuildDir}/%.o: $(o2cpp)
+${bildDir}/%.o: $(o2cpp)
 	@echo  'Compiling $(o2cpp) *'
 	@${msCXX} ${msCFLAGS} -c $(o2cpp)   -o $@
 
-$(srcs): psAppDirs $(cps2o) 
+$(srcs): psAppDirs $(cps2o)
 	@echo  Building  $(cpp2o) '>> ' $(@:.cpp=${OPT})
-	@${msCXX} $(cpp2o)  -o $(msBinDir)/$(@:.cpp=)${OPT} ${msLFLAGS}
+	@${msCXX} $(cpp2o)  -o ${msBinDir}/$(@:.cpp=)${OPT} ${msLFLAGS}
 
 -include $(cpp2d)
 
 .PHONY:  clean $(cpp2d)
 
-clean:
-	$(RM) $(cps2o) $(cpp2d)
+clean:; $(RM) $(cps2o) $(cpp2d)
 
 endif #  USE_SINGLECPP    #####################################################:
 
 
 
 # Warning: VTK-8.9 and upwards do not work on t3&4(Ubuntu16)
-ifdef USE_VTK 
- msCmakeFLAGS += -DVTK_DIR:PATH=${HOME}/.local/lib/cmake/vtk-8.2  -DCMAKE_INSTALL_PREFIX=${msRoot} 
+ifdef USE_VTK
+ msCmakeFLAGS +=  -DCMAKE_INSTALL_PREFIX=${msInst}
+# download VTK && mkdir vtk_buils &&:
+# sudo apt-get install libglu1-mesa-dev freeglut3-dev mesa-common-dev
+# cmake --install-prefix ${HOME}/.local -S../VTK-9.2.0.rc1/
+# make ; make install
 endif
 
 ifdef USE_msCMAKE  ################## compile Cmake app/lib ##################:
 msCApp:
-	mkdir -p  ${msBuildDir}
-	(cd       ${msBuildDir} &&  cmake $(msCmakeFLAGS) -DmsSrc=${msSrc} $(makFilDir))
-	(cd       ${msBuildDir} &&  make VERBOSE=1) || echo ${exec} not built, continuing anyway
-	@cp ${msBuildDir}/${exec} $(msBinDir)        || echo Warning:  cannot copy ${msBuildDir}/${exec}, but continuing
-clean: ; cd ${msBuildDir} && make clean && rm -rf ${msBuildDir}
+	mkdir -p  ${bildDir}
+	(cd       ${bildDir} &&  cmake $(msCmakeFLAGS) -DmsSrc=${msSrc} $(makFilDir))
+	(cd       ${bildDir} &&  make VERBOSE=1) || echo ${exec} not built, continuing anyway
+	@cp ${bildDir}/${exec} ${msBinDir}        || echo Warning:  cannot copy ${bildDir}/${exec}, but continuing
+clean: ; cd ${bildDir} && make clean && rm -rf ${bildDir}
 else
   msCApp: ; $(error msCApp target should be used togather with USE_msCMAKE=1, $^)
 endif # USE_msCMAKE  ########################################################:
@@ -408,19 +383,19 @@ endif # USE_msCMAKE  ########################################################:
 
 ifdef USE_msMAKE ################ compile single app folder ######################:
   # recursively include subfolders
-  _rI = $(addprefix -I,$(shell find $(1) -type d)) 
-  
+  _rI = $(addprefix -I,$(shell find $(1) -type d))
+
   # convert .cpp file paths to .o, .d and vise versa
-  o2cpp = $(subst ${msBuildDir}/,,$(subst __,/,$(subst ++,..,$(subst .o,.cpp,$@))))
-  cpp2o = $(addprefix ${msBuildDir}/,$(subst /,__,$(subst ..,++,$(srcs:.cpp=.o))))
-  cpp2d = $(addprefix ${msBuildDir}/,$(subst /,__,$(subst ..,++,$(srcs:.cpp=.d))))
+  o2cpp = $(subst ${bildDir}/,,$(subst __,/,$(subst ++,..,$(subst .o,.cpp,$@))))
+  cpp2o = $(addprefix ${bildDir}/,$(subst /,__,$(subst ..,++,$(srcs:.cpp=.o))))
+  cpp2d = $(addprefix ${bildDir}/,$(subst /,__,$(subst ..,++,$(srcs:.cpp=.d))))
 
   objs += $(cpp2o)
   deps += $(cpp2d)
 
 msApp: psAppDirs $(objs)
-	@echo Building ${CURDIR}  -> $(msBinDir)/${exec}
-	@${msCXX}  $(objs) -o $(msBinDir)/${exec} ${msLFLAGS}
+	@echo Building ${CURDIR}  -> ${msBinDir}/${exec}
+	${msCXX}  $(objs) -o ${msBinDir}/${exec} ${msLFLAGS}
 
 msLib: psAppDirs $(objs)
 	@mkdir -p $(msLibDir)
@@ -429,17 +404,16 @@ msLib: psAppDirs $(objs)
 
 .PHONY: clean ${deps}
 
-clean:
-	$(RM) $(objs) ${deps}
+clean: ; $(RM) $(objs) ${deps}
 
 -include ${deps}
 
 
-${msBuildDir}/%.Obj: $(OFObj2C)
+${bildDir}/%.Obj: $(OFObj2C)
 	@echo  'Compiling $(OFObj2C)  *'
 	@${msCXX}  ${msCFLAGS} ${OFCFLAGS} ${EXTRACFLAGS} -c $(OFObj2C) -o $@
 
-${msBuildDir}/%.o: $(o2cpp)
+${bildDir}/%.o: $(o2cpp)
 	@echo  'Compiling $(o2cpp)   *'
 	@${msCXX}  ${msCFLAGS}  ${EXTRACFLAGS} -c $(o2cpp) -o $@
 
@@ -459,34 +433,54 @@ endif  #  USE_msMAKE  ##########################################################
 
 
 ifdef USE_msTEST #################### run tests #################################:
+
+
+testDir = ${msTstDir}/${exec}
+#$(shell basename ${CURDIR})${OPT}
+testDirs:
+	@mkdir -p ${testDir}
+
   # t_ is making targets .PHONY (re-run anyway)
-  tst2test := $(addprefix T${msTestDir}/,$(subst /,__,$(subst ..,++,$(tsts))))
-  test2tst = $(subst T${msTestDir}/,,$(subst __,/,$(subst ++,..,$@)))
+  tsts2test = $(addprefix T${testDir}/,$(subst /,__,$(subst ..,++,$(tsts))))
+  test2tst = $(subst T${testDir}/,,$(subst __,/,$(subst ++,..,$@)))
   inp2app = $(lastword $(subst _, ,$(subst .sin,,$@)))
+  inc2app = $(lastword $(subst _, ,$(subst _, ,$(subst .cc,,$@))))
 
-T${msTestDir}/%.mhd: $(test2tst)
-	cp $(test2tst) ${msTestDir}/
+T${testDir}/%*: $(test2tst)
+	cp -r $(test2tst) ${testDir}/
 
-T${msTestDir}/%.sin: $(test2tst)
-	@echo detecting app from *_app.sin=="$@": $(inp2app)
-	$(msSrc)/script/testApp "${msTestDir}"  $(inp2app) "${CURDIR}/$(test2tst)"  "${msRoot}"
 
-T${msTestDir}/%.py: $(test2tst)
+T${testDir}/%.mhd: $(test2tst)
+	cp $(test2tst) ${testDir}/
+T${testDir}/%.tsv: $(test2tst)
+	cp $(test2tst) ${testDir}/
+	cp $(test2tst) ${testDir}/
+T${testDir}/%__: $(test2tst)
+	cp -r $(test2tst) ${testDir}/
+
+T${testDir}/%.sin: $(test2tst)
+	@echo detecting app from *_app.sin=="$@": $(inp2app) *** Warning rename file to .cc *****
+	$(msSrc)/script/testApp "${testDir}"  $(inp2app) "${CURDIR}/$(test2tst)"  "${msRoot}"
+
+T${testDir}/%_gnrun.cc: $(test2tst)
+	@echo detecting app from *_gnrun.cc=="$@": $(inc2app)
+	$(msSrc)/script/testApp "${testDir}"  $(inc2app) "${CURDIR}/$(test2tst)"  "${msRoot}"
+
+T${testDir}/%.py: $(test2tst)
 	echo python3 "${CURDIR}/$(test2tst)"
-	$(msSrc)/script/testApp "${msTestDir}"  python3 "${CURDIR}/$(test2tst)"
+	$(msSrc)/script/testApp "${testDir}"  python3 "${CURDIR}/$(test2tst)"
 
-T${msTestDir}/%.cpp: $(test2tst)
+T${testDir}/%.cpp: $(test2tst)
 	echo ${msCXX}
 	${msCXX} -std=c++11 $(test2tst) -o $@
-	$(msSrc)/script/testApp "${msTestDir}"  "${CURDIR}/$@" "${CURDIR}/$(test2tst)"
+	$(msSrc)/script/testApp "${testDir}"  "${CURDIR}/$@" "${CURDIR}/$(test2tst)"
 
-T${msTestDir}/%.sh:
-	$(msSrc)/script/testApp "${msTestDir}" "${CURDIR}/$(test2tst)"
-#	(cd ${msTestDir} && $(test2tst))
+T${testDir}/%.sh:
+	$(msSrc)/script/testApp "${testDir}" "${CURDIR}/$(test2tst)"
+#	(cd ${testDir} && $(test2tst))
 
-test: msTstDirs $(tst2test) 
-	@echo  All tests finished $(tst2test) ${msTestDir}/
- 
-.PHONY:  clean test 
+test: testDirs $(tsts2test)
+	@echo  All tests finished $(tsts2test) ${testDir}/
+
+.PHONY:  clean test
 endif  # USE_msTEST #################################################################:
-

@@ -2,7 +2,7 @@
 
 # basic python utilities used in testing etc.
 # set the PATHs needed to run porefoam... codes from python3
-# developed by Ali Q. Raeini (2019), 
+# developed by Ali Q. Raeini (2019),
 
 
 
@@ -17,27 +17,27 @@ import io
 import inspect
 
 
-
 ######################  SET SCRIPT DIRECTORIES    ######################
 
-try:    disp(msEnv['msSrc'])
+try:    print(msEnv['msSrc'])
 except: msEnv = os.environ.copy(); pass
 
+
 msSrc = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # script directory
-if "msSrc" in msEnv: 
-	if msSrc!=msEnv['msSrc'] :disp("Info: not resetting msSrc: "+msEnv['msSrc'])
+if "msInst" in msEnv and "PATH" in msEnv and os.path.join(msEnv["msInst"],"bin") in msEnv["PATH"]:
+	if msSrc!=msEnv['msSrc']: print("Info: not resetting msSrc: "+msEnv['msSrc'])
 	msSrc= msEnv['msSrc'];
 else :
-	disp(("Setting msSrc:",msSrc))
+	print(("Setting msSrc:",msSrc))
 	sep=os.pathsep;
-	msRoot = os.path.abspath(msSrc+"/..")
+	msInst = os.path.abspath(msSrc+"/../..")
 	msEnv["PATH"] = msEnv["PATH"] +sep+ msSrc+"/script"
 	msEnv["PATH"] = msEnv["PATH"] +sep+ msSrc+"/porefoam1f/script"
 	msEnv["PATH"] = msEnv["PATH"] +sep+ msSrc+"/porefoam2f/script"
 	msEnv["PATH"] = msEnv["PATH"] +sep+ msSrc+"/gnm/script/PNM"
-	try:msEnv["LD_LIBRARY_PATH"] = msEnv["LD_LIBRARY_PATH"] +sep+msRoot+"/lib"
-	except:msEnv["LD_LIBRARY_PATH"] = msRoot+"/lib"
-	msEnv["PATH"] = msEnv["PATH"] +sep+ msRoot+"/bin"
+	try:    msEnv["LD_LIBRARY_PATH"] = msEnv["LD_LIBRARY_PATH"] +sep+msInst+"/lib"
+	except: msEnv["LD_LIBRARY_PATH"] = msInst+"/lib"
+	msEnv["PATH"] = msEnv["PATH"] +sep+ msInst+"/bin"
 	sys.path.append(msSrc+"/pylib")
 	msEnv.update({'msSrc':msSrc})
 	os.environ.update({'msSrc':msSrc})
@@ -50,7 +50,7 @@ import functools
 disp  = functools.partial(print, flush=True)
 mkdr = functools.partial(os.makedirs, exist_ok=True)
 def pwd(): return os.getcwd()+'/'
-def cd(workdir):  
+def cd(workdir):
 	pwd_main = os.getcwd()
 	if len(workdir) and workdir!='.' and pwd_main!=workdir:
 		try: os.chdir(workdir)
@@ -69,30 +69,32 @@ def DbgMsg(message='', nTrace=4, isError=0, endl='\n',nSkipTrace=1):
 		for ii in range(0,min(nTrace,len(stak)-nSkipTrace)):
 			er = inspect.getframeinfo(stak[ii+nSkipTrace][0]) # 0 represents this line, 1 represents line at caller
 			print(f'File "{er.filename}", line {er.lineno}, in {er.function}')
-		if nTrace<len(stak)-nSkipTrace: 
+		if nTrace<len(stak)-nSkipTrace:
 			er = inspect.getframeinfo(stak[-1][0]) # in main module
 			print(f'File "{er.filename}", line {er.lineno}, in {er.function}')
 		disp(message,endl)
 	return isError
 
-def alert(message='', abort=0, err=None, nTrace=1, nSkipTrace=2): 
-	if err: disp(message);  raise Exception(message) from err 
-	else: 
-		DbgMsg( message, nTrace=nTrace, isError=True, nSkipTrace=nSkipTrace); 
+def alert(message='', abort=0, err=None, nTrace=1, nSkipTrace=1):
+	if err: disp(message);  raise Exception(message) from err
+	else:
+		DbgMsg( message, nTrace=nTrace+1, isError=True, nSkipTrace=nSkipTrace+1);
 		if abort:  exit(abort);
 
-def ensure(okey, message='', abort=0, nTrace=1, nSkipTrace=2): 
-	if not okey:  alert(message, abort, None, nTrace, nSkipTrace)
+def ensure(okey, message='', abort=0, nTrace=2, nSkipTrace=1):
+	if not okey:  alert(message, abort, None, nTrace+1, nSkipTrace+1)
 
 def runSh(resDir, script, logfile=None, envs={}):
 	'''if script starts with space or len(script[0])<=3 then logfile=sys.stdout'''
 	if not os.path.exists(resDir):   disp('error directory'+resDir+' not present'); exit(-1)
-	oNam=str(script).replace('[','').split(' ')[0]; disp('>> '+str(script)) # 
-	if not logfile and len(oNam)>3 and oNam[0].isalnum():  
-		oNam=resDir+'/'+oNam+'.log'; 
-		logfile = open(oNam,'wb'); 
-	myenv = msEnv.copy();	myenv.update(envs) 
-	disp(f'Running {script} in {resDir}, envs: {envs or ""} >> {oNam or ""}');
+	oNam=str(script).replace('[','').split(' ')[0]; disp('>> '+str(script)) #
+	if not logfile and len(oNam)>3 and oNam[0].isalnum():
+		oNam=resDir+'/'+oNam+'.log';
+		logfile = open(oNam,'wb');
+		oNam=os.path.abspath(oNam)
+	else: oNam=''
+	myenv = msEnv.copy();	myenv.update(envs)
+	disp(f'Running {script} in {resDir}, envs: {envs or ""} >> {oNam}');
 	return subprocess.run(script, stdout=logfile, stderr=logfile, shell=True, cwd=resDir, env=myenv)
 
 
@@ -100,23 +102,23 @@ def grepFloatInStr(lines='',keyword='Kx=', fnamHint=''):
 	try:
 		for ele in re.split(':|=| |,|\n|\t|;',lines.split(keyword,1)[1],20) :
 			if len(ele):
-				try: return float(ele) ;   
-				except ValueError: 
-					DbgMsg('no valid data for '+keyword+' in '+pwd()+fnamHint+', got '+ele);  pass ; 
+				try: return float(ele) ;
+				except ValueError:
+					DbgMsg('no valid data for '+keyword+' in '+pwd()+fnamHint+', got '+ele);  pass ;
 					return float('NaN')
 	except : DbgMsg(keyword+' not in file (?) '+pwd()+fnamHint+" ",6); pass
 	return float('NaN')
 
 def grepFloatInFile(inFIle='summary.txt',keyword='Kx='):
-	try:     lines = open(inFIle, 'r').read()
+	try:    lines = open(inFIle, 'r').read()
 	except: DbgMsg('cannot open '+inFIle) ; return 0.
-	return grepFloatInStr(lines,keyword, inFIle)
+	return  grepFloatInStr(lines,keyword, inFIle)
 
 def fileFloatDiffersFrom(inFIle, keyword, val, frac=0.01, delta=1e-32):
 	fVal=grepFloatInFile(inFIle,keyword)
-	if abs(fVal-val)<frac*abs(val)+delta : 
+	if abs(fVal-val)<frac*abs(val)+delta:
 		print(inFIle+" -> "+keyword+": "+str(fVal) +" ~= "+str(val))
 		return 0
-	else                                  : 
+	else:
 		print(inFIle+" -> "+keyword+": "+str(fVal) +" != "+str(val))
 		return 1
