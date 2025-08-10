@@ -73,9 +73,16 @@ InDir=In $(notdir $(abspath $(dir $(PWD))))/$(notdir $(PWD)): ***
 
 ifeq (${USE_VXIMG},1)
  ifndef USED_VXLIB
-   msCFLAGS += -I${msSrc}/libvoxel
- endif
-endif
+  ifeq (${MS_VERSION},2)
+    msCFLAGS += -I${msSrc}/libvoxel
+    srcs += ${msSrc}/libvoxel/voxelImage.cpp  ${msSrc}/libvoxel/vxlPro.cpp
+  else
+    $(warning Using outdated script)
+    msCFLAGS += -I${msSrc}/libvoxel
+  endif
+ endif # USED_VXLIB
+endif # USE_VXIMG
+
 
 
 # set libtiff install directory: TIFDIR
@@ -337,28 +344,40 @@ endif  # USE_msRecurse
 
 
 
+################ single-source .cpp app ##################:
+ifdef   USE_SINGLECPP
 
-ifdef   USE_SINGLECPP   ################ single-source .cpp app ##################:
- cpp2d := $(addprefix ${bildDir}/,$(subst /,__,$(subst ..,++,$(srcs:.cpp=.d))))
- cpp2o = $(addprefix ${bildDir}/,$(subst /,__,$(subst ..,++,$(@:.cpp=.o))))
- cps2o := $(addprefix ${bildDir}/,$(subst /,__,$(subst ..,++,$(srcs:.cpp=.o))))
- o2cpp = $(subst ${bildDir}/,$(CURDIR)/,$(subst __,/,$(subst ++,..,$(subst .o,.cpp,$@))))
+ifndef MS_VERSION # v1 / ICL codes
+  mains := $(srcs:.cpp=)
+  srcs :=
+  $(warning srcs ${srcs}   mains ${mains})
+all: $(mains)
+endif
 
-${bildDir}/%.o: $(o2cpp)
-	@echo  'Compiling $(o2cpp) *'
-	@${msCXX} ${msCFLAGS} -c $(o2cpp)   -o $@
+ alls  = ${srcs} $(addsuffix .cpp,${mains})
+ all2d = $(call toBild,,$(alls:.cpp=.d))
+ all2o = $(call toBild,,$(alls:.cpp=.o))
+ cpp2o = $(call toBild,,$(addsuffix .o,$@) $(srcs:.cpp=.o))
 
-$(srcs): psAppDirs $(cps2o)
+$(info all2o: $(all2o),   bildDir: ${bildDir}  )
+
+${bildDir}/%.o: $(call toSorc,,$(@:.o=.d))
+	@echo  'Compiling $(call toSorc,,$(@:.o=.cpp)) *'
+	${msCXX} ${msCFLAGS} -c $(call toSorc,,$(@:.o=.cpp))  -o $@
+
+$(mains): psAppDirs $(all2o)
+	@# NB! do not replace ^ with cpp2o
 	@echo  Building  $(cpp2o) '>> ' $(@:.cpp=${OPT})
-	@${msCXX} $(cpp2o)  -o ${msBinDir}/$(@:.cpp=)${OPT} ${msLFLAGS}
+	@${msCXX} $(cpp2o)  -o ${msBinDir}/$(@:.cpp=)${OPT}   ${msLFLAGS}
 
--include $(cpp2d)
+-include $(all2d)
 
-.PHONY:  clean $(cpp2d)
+.PHONY:  clean $(all2d)
 
-clean:; $(RM) $(cps2o) $(cpp2d)
+clean:; $(RM) $(all2o) $(all2d)
 
-endif #  USE_SINGLECPP    #####################################################:
+endif #  USE_SINGLECPP
+#####################################################:
 
 
 
