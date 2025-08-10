@@ -35,6 +35,10 @@ ifndef msSrc  # set msSrc to upper directory if not already set
  $(info msSrc set to ${msSrc})
 endif
 
+# Use .env file to set msInst, msTstDir and/or msBilDir vars
+ifneq ($(wildcard ${msSrc}/.env),)
+  include ${msSrc}/.env
+endif
 
 # set msBinDir if not set, msInst is also set from .msRoot for .exe OPT
 export msInst ?= $(abspath ${msSrc}/..)

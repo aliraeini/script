@@ -6,6 +6,12 @@ curMkfil:=$(lastword $(MAKEFILE_LIST))
 
 export msSrc := ${CURDIR}/src
 export ms3rd := ${CURDIR}/pkgs
+
+# Use .env file to set msInst, msTstDir and/or msBilDir vars
+ifneq ($(wildcard ${CURDIR}/.env),)
+  include ${CURDIR}/.env
+endif
+
 export msInst ?= $(abspath ${msSrc}/..)
 export msTstDir ?= ${msInst}/test_runs
 
