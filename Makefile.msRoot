@@ -1,16 +1,17 @@
 #!/bin/make
 # Makefile for top ($msRoot) directory
 
+# order matters
+curMkfil:=$(lastword $(MAKEFILE_LIST))
+
 export msSrc := ${CURDIR}/src
 export ms3rd := ${CURDIR}/pkgs
 export msInst ?= $(abspath ${msSrc}/..)
-export tstDir ?= /data/test
+export msTstDir ?= ${msInst}/test_runs
 
-curMkfil:=$(lastword $(MAKEFILE_LIST))
 
 #nproc = $(shell $(( $nproc < 1 ? 4 : $nproc )))
 #nproc = $(shell $(( $nproc > 31 ? 31 : $nproc )))
-
 
 
 # Build for Linux
@@ -47,7 +48,7 @@ distclean:      checkRoot clean
 	(cd ${ms3rd} && $(MAKE) -f ${msSrc}/script/makefile.3rd  distclean)
 
 checkRoot:
-	@printf  "src/script/Makefile.msRoot == ${curMkfil}? "
+	@echo  "src/script/Makefile.msRoot == ${curMkfil}? "
 	@[ "src/script/Makefile.msRoot" =  "${curMkfil}" ] || (echo Error: ran make from wrong directory && false)
 	@echo  :/
 
@@ -63,10 +64,10 @@ checksum:
 
 
 
-#TODO use recursive 'make test'
-maketest= ( ! [ -d ${1} ] ) || (echo test ${1} && cd ${1} && make test)  ||  echo "Error failed in ${1} on make test"
+#TODO ORGANISE tests (unify workflow)
+maketest= (test -d ${1}  &&  echo ":::: maketest ${1}"  &&  cd ${1} && make test && echo "\033[32m:::: passed ${1}\n\033[0m")  ||  printf "\033[91m:::: failed (cd ${1} && make updateTest) \n\n\033[0m"
 test: checkRoot
-	mkdir -p test
+	mkdir -p ${msTstDir}
 	@$(call maketest,src/include)
 	@$(call maketest,src/libvoxel)
 	@$(call maketest,src/pnm/pnextract)

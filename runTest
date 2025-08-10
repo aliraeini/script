@@ -7,37 +7,35 @@
 tstDir=$1;   tstApp=$2;  tstInp=$3;  apsDir=$4
 
 
-if [ -z "$apsDir" ]; then  apsDir=$(cd "$(dirname ${BASH_SOURCE[0]})/../.." && pwd);  fi
+[ -n "$apsDir" ] || apsDir=$(cd "$(dirname ${BASH_SOURCE[0]})/../.." && pwd)
 
-if [ -z "$msInst" ] || ! [  "$PATH" == *"$msInst/bin"* ] ; then  echo "source  $apsDir/src/script/bashrc";
+if [ -z "$msInst" ] || ! [  "$PATH" == *"$msInst/bin"* ] ; then
+  echo "source $apsDir/src/script/bashrc";
 	source  $apsDir/src/script/bashrc
-else                       [ "$msRoot" == "$apsDir" ] || exit ; fi
+else  [ "$msRoot" == "$apsDir" ] || exit ; fi
 
-
-checkErr()
-{
+checkErr() {
+  task="$(echo $1 | sed 's/log\./  /')"
   Er="$(grep -E '\bError|\bterminate|\bAborting|: error' $1 || true)" # grep returns 1 (==false) if no match found
-  task=" $(echo $1 | sed 's/log\./  /') *** \n\n"
+  [ "$2" == "0" ] ||  Er="  $Er\n  See $1"
 
-  if [ $2 != 0 ]; then    Er+="  Exit code: $2"; fi
-
-  if [ -z "$Er" ]; then    printf "\n *** Succeed @$task";
-  else echo "'$Er', see: $1"; printf "\n ***  Failed @$task" ;   fi
+  if [ -z "$Er" ]; then    echo  "Succeed @ $task"
+  else printf '\n\033[91m'"$Er"'\033[0m\n\n';  fi
   if xhost >/dev/null 2>&1 ; then
     if [ -z "$Er" ]; then  notify-send "Succeed @$task" &
     else                   notify-send " Failed @$task" & geany "$1" || gedit "$1";  fi
   fi
 }
 
-
 usage() {
-  printf "Usage:\n  testApp tstDir   tstApp  tstInp  apsDir
+  printf "Usage:\n  runTest tstDir   tstApp  tstInp  apsDir
   \nExamples:
-    testApp  /mnt/ramd/tst/Gao2017GNM  gnrun  $msRoot/src/gnm/script/Gao2017_gnrun.sin  $msRoot
-    testApp  $msRoot  make
-    testApp  $msRoot  'make dbg'  '' $msRoot
-    testApp  $msRoot  'make .exe' '' $msRoot\n"; }
-[ -f  "$tstApp" ] || which $tstApp  || (! usage) || exit
+    $0  /mnt/ramd/tst/Gao2017GNM  gnrun  $msRoot/src/gnm/script/Gao2017_gnrun.sin  $msRoot
+    $0  $msRoot  make
+    $0  $msRoot  'make dbg'  '' $msRoot
+    $0  $msRoot  'make .exe' '' $msRoot\n"
+}
+[ -f  "$tstApp" ] || which $tstApp >/dev/null  || (! usage) || exit
 
 
 
@@ -49,8 +47,7 @@ mkdir -p $tstDir
 logf=log.$(basename $(echo $tstApp | sed 's/ \+/_/g'))
 [ -n "$tstInp" ] && logf+=_$(basename $tstInp)
 
-echo  "$tstApp $tstInp >  $tstDir/$logf "
-(cd $tstDir/ && $tstApp   $tstInp > $logf 2>&1 );  ret=$?
+echo  "$tstApp $tstInp > $tstDir/$logf "
+(cd $tstDir/ &&  $tstApp $tstInp  >$logf 2>&1);  ret=$?
 checkErr "$tstDir/$logf" $ret
-
 exit $ret

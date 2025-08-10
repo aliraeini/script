@@ -19,9 +19,7 @@ import inspect
 
 ######################  SET SCRIPT DIRECTORIES    ######################
 
-try:    print(msEnv['msSrc'])
-except: msEnv = os.environ.copy(); pass
-
+msEnv = os.environ.copy(); pass
 
 msSrc = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # script directory
 if "msInst" in msEnv and "PATH" in msEnv and os.path.join(msEnv["msInst"],"bin") in msEnv["PATH"]:
@@ -86,7 +84,7 @@ def ensure(okey, message='', abort=0, nTrace=2, nSkipTrace=1):
 
 def runSh(resDir, script, logfile=None, envs={}):
 	'''if script starts with space or len(script[0])<=3 then logfile=sys.stdout'''
-	if not os.path.exists(resDir):   disp('error directory'+resDir+' not present'); exit(-1)
+	if not os.path.exists(resDir):   disp('error directory '+resDir+' not present'); exit(-1)
 	oNam=str(script).replace('[','').split(' ')[0]; disp('>> '+str(script)) #
 	if not logfile and len(oNam)>3 and oNam[0].isalnum():
 		oNam=resDir+'/'+oNam+'.log';
@@ -95,7 +93,7 @@ def runSh(resDir, script, logfile=None, envs={}):
 	else: oNam=''
 	myenv = msEnv.copy();	myenv.update(envs)
 	disp(f'Running {script} in {resDir}, envs: {envs or ""} >> {oNam}');
-	return subprocess.run(script, stdout=logfile, stderr=logfile, shell=True, cwd=resDir, env=myenv)
+	return subprocess.run(script, stdout=logfile, stderr=logfile, shell=True, cwd=resDir, env=myenv, check=True)
 
 
 def grepFloatInStr(lines='',keyword='Kx=', fnamHint=''):
