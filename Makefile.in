@@ -36,8 +36,8 @@ ifndef msSrc  # set msSrc to upper directory if not already set
 endif
 
 # Use .env file to set msInst, msTstDir and/or msBilDir vars
-ifneq ($(wildcard ${msSrc}/.env),)
-  include ${msSrc}/.env
+ifneq ($(wildcard ${msSrc}/../.env),)
+  include ${msSrc}/../.env
 endif
 
 # set msBinDir if not set, msInst is also set from .msRoot for .exe OPT
@@ -63,6 +63,11 @@ ifneq ($(MAKECMDGOALS),clean) ############### if not cleaning  ###############:
 
 msReleaseDate ?= \"$(shell date +'%Y.%m.%d')\"
 
+
+# maintain backward compatibility for now
+ifdef MS_VERSION
+  msCFLAGS += -DMS_VERSION=${MS_VERSION}
+endif
 
 msCFLAGS += -I${msSrc}/include -I${msInst}/include -DRELEASE_DATE=$(msReleaseDate) -D_FILE_OFFSET_BITS=64
 msLFLAGS += -L$(msLibDir)
