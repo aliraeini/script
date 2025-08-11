@@ -1,8 +1,9 @@
 #!/bin/bash
-echo "\n\033[34m\n initbash is deprecated, source foam.bashrc instead \033[0m\n"
+set -e
 
 [ -n "$msBinDir" ] || echo source $(dirname "${BASH_SOURCE[0]}")/../bashrc
 [ -n "$msBinDir" ] || source $(dirname "${BASH_SOURCE[0]}")/../bashrc
+echo "msBinDir: $msBinDir"
 
 if [ -z "$WM_PROJECT" ] ; then
 	# Openfoam settings:
@@ -16,7 +17,6 @@ elif [[ "$WM_PROJECT_DIR" != "$msRoot/"*"/foamx4m" ]]; then
 	printf "\n *** If you meant to use foamx4m instead, deactivate this and re-source in a new terminal.\n\n"
 fi
 
-echo "msBinDir: $msBinDir"
 
 # directory of single-phase script and base cases:
 SP_SCRIPTS=$msSrc/porefoam1f/script
@@ -134,7 +134,7 @@ addSetKeyValue() {
 }
 
 setSubKeywordValues()  {  sed -i '/'"$1"'/,/\}/s/^[ \t]*'"$2"'[ \t].*$/'"       $2   $3; "'/' $4 ; }
-setBoundaryCondition() { sed -i '/'"$1"'/,/\}/s/^[ \t]*'"$2"'[ \t].*$/'"       $2   $3; "'/' $4 ; }
+setBoundaryCondition() {  sed -i '/'"$1"'/,/\}/s/^[ \t]*'"$2"'[ \t].*$/'"       $2   $3; "'/' $4 ; }
 
 setValues() {   sed -i 's/'"$1"'/'"$2"'/g' $3 ; }
 

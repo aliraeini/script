@@ -10,16 +10,16 @@ tstDir=$1;   tstApp=$2;  tstInp=$3;  apsDir=$4
 [ -n "$apsDir" ] || apsDir=$(cd "$(dirname ${BASH_SOURCE[0]})/../.." && pwd)
 
 if [ -z "$msInst" ] || ! [  "$PATH" == *"$msInst/bin"* ] ; then
-  echo "source $apsDir/src/script/bashrc";
-	source  $apsDir/src/script/bashrc
+  echo "source $apsDir/src/script/bashrc # from run test";
+  source ${apsDir}/src/script/bashrc
 else  [ "$msRoot" == "$apsDir" ] || exit ; fi
 
 checkErr() {
   task="$(echo $1 | sed 's/log\./  /')"
-  Er="$(grep -E '\bError|\bterminate|\bAborting|: error' $1 || true)" # grep returns 1 (==false) if no match found
+  Er=`grep -3 -E '\bError|ERROR|\bterminate|\bAborting|: error' $1 || true` # grep returns 1 (==false) if no match found
   [ "$2" == "0" ] ||  Er="  $Er\n  See $1"
 
-  if [ -z "$Er" ]; then    echo  "Succeed @ $task"
+  if [ -z "$Er" ]; then    printf  '\033[32m'"Succeed @ $task"'\033[0m\n'
   else printf '\n\033[91m'"$Er"'\033[0m\n\n';  fi
   if xhost >/dev/null 2>&1 ; then
     if [ -z "$Er" ]; then  notify-send "Succeed @$task" &

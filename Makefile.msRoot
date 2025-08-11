@@ -68,19 +68,26 @@ checksum:
 	printf '    sha256sum -c checksums_sha256.md\n\n'                         >> checksums_sha256.md
 
 
-
-
-#TODO ORGANISE tests (unify workflow)
-maketest= (test -d ${1}  &&  echo ":::: maketest ${1}"  &&  cd ${1} && make test && echo "\033[32m:::: passed ${1}\n\033[0m")  ||  printf "\033[91m:::: failed (cd ${1} && make updateTest) \n\n\033[0m"
-test: checkRoot
-	mkdir -p ${msTstDir}
-	@$(call maketest,src/include)
-	@$(call maketest,src/libvoxel)
+#TODO delete:
+maketest= (echo ":::: maketest ${1}"  &&  test -d ${1}  &&  cd ${1} && make test)
+_testDepricated:
 	@$(call maketest,src/pnm/pnextract)
 	@$(call maketest,src/pnm/pnflow)
-	@$(call maketest,src/ContAngle)
-	@$(call maketest,src/porefoam1f)
-	@$(call maketest,src/porefoam2f)
+
+run_tests: checkRoot
+	(cd ${msSrc} && $(MAKE) -f ${msSrc}/script/Makefile.in recurseTest USE_msRecurse=1)
+
+test: _testDepricated checkRoot run_tests
+	@echo "\n\033[34m Checking the test logs: \033[0m\n"
+	@for cas in $(shell find test_runs/ -type f | grep log) ; do \
+		(! grep -3 -E '\bError|\bFATAL|\bterminate|\bAborted|\bAborting|: error'  $${cas} ) \
+		|| printf "\n\n^^^\033[91m Error in $${cas} \033[0m \n================================================\n\n"; \
+	done
+	@for cas in $(shell find test_runs/ -type f | grep log) ; do \
+		(! grep -3 -E '\bError|\bFATAL|\bterminate|\bAborted|\bAborting|: error'  $${cas} >/dev/null )\
+		|| exit 1; \
+	done
+	@echo "\033[34m No errors detected \033[0m"
 
 
 # not used yet
@@ -91,5 +98,3 @@ install:
 	cp -rp lib  $(installDir)
 	cp -p  src/bashrc  $(installDir)bin/
 	cp -rp src/script $(installDir)bin/
-
-

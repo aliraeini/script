@@ -19,8 +19,6 @@ else
 	export msBilDir=${msBilDir:-$msInst/build}
 	export msTstDir=${msTstDir:-$msInst/test_runs}
 
-	echo  "BuildDir: $msBilDir  TestDir:$msTstDir     InstallDir: $msInst"
-
 	# maybe safer to prepend PATHs?
 	export PATH=$PATH:$msSrc/script
 	export PATH=$PATH:$msSrc/porefoam1f/script
