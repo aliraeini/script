@@ -68,16 +68,10 @@ checksum:
 	printf '    sha256sum -c checksums_sha256.md\n\n'                         >> checksums_sha256.md
 
 
-#TODO delete:
-maketest= (echo ":::: maketest ${1}"  &&  test -d ${1}  &&  cd ${1} && make test)
-_testDepricated:
-	@$(call maketest,src/pnm/pnextract)
-	@$(call maketest,src/pnm/pnflow)
-
 run_tests: checkRoot
 	(cd ${msSrc} && $(MAKE) -f ${msSrc}/script/Makefile.in recurseTest USE_msRecurse=1)
 
-test: _testDepricated checkRoot run_tests
+test: checkRoot run_tests
 	@echo "\n\033[34m Checking the test logs: \033[0m\n"
 	@for cas in $(shell find test_runs/ -type f | grep log) ; do \
 		(! grep -3 -E '\bError|\bFATAL|\bterminate|\bAborted|\bAborting|: error'  $${cas} ) \
