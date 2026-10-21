@@ -1,7 +1,9 @@
-# Compiling codes
+# Bash and Make scripts
 
-To compile, open a terminal in the upper most directory, where `src` and `pkgs`
- folders are located, and run:
+## Compiling (legacy) code
+
+To compile, open a terminal in the uppermost directory, where the `src` and `pkgs`
+folders are located, and run:
 
  `make -j`
 
@@ -9,125 +11,110 @@ To test the compilation, run:
 
  `make test`
 
-Once everything compiled successfully, to clean the temporary files, type:
+All build, install, and test outputs stay inside the top directory: the
+locations `MS_INST` (bin, lib, include), `msBilDir` (build), and `MS_TEST_DIR`
+(test results) can be set in a `.env` file there (see `.env.example`), and
+must be inside that directory; otherwise, `make` stops.
+
+Once everything has compiled successfully, to clean the temporary files, run:
 
  `make clean`
 
-The above command can be run inside most of the subfolders, wherever a
-makefile or Makefile is present.  The libraries, those with a `makefile`,
+The above command can be run inside most subfolders wherever a
+`makefile` or `Makefile` is present. The libraries (those with a `makefile`)
 will be compiled before the apps that contain `Makefile`s.
 
-Compilation requires gnu (Linux) make, cmake, a c++ compiler with -std=c++11
-support and MPI. The compilation is tested using g++ (version 5+) (default)
-and using intel-2018 compilers.
+Compilation requires GNU (Linux) Make, CMake, a C++ compiler, and MPI. The compilation has been tested using g++ (version 5+, default)
+and Intel 2018 compilers.
 
-For the modules which have `pkgs/foamx4m` as dependancy, you if you have
-any other OpenFOAM you have on your machine, need to temporarily ***deactivate
-your OpenFOAM installation when compiling*** this code to avoid conflict between
-the foam3m provided here and your openfoam instalation.
-Additionally, you need to install foam3m dependancies, this can be done in Ubuntu
+For modules that have `pkgs/foamxm` as a dependency: if you have
+any other OpenFOAM installation on your machine, you need to temporarily ***deactivate
+your OpenFOAM installation when compiling*** this code to avoid conflicts between
+the `foamxm` provided here and your OpenFOAM installation.
+Additionally, you need to install `foamxm` dependencies; on Ubuntu, this can be done
 by running:
 `sudo apt install mpi-default-dev flex libscotch-dev`
 
 # Tests and demos
-To test the codes type:
+To test the code, run:
 
  `make test`
 
-This should copy a series of input files/scripts in a `test` folder and
-run a series of relatively quick test cases (see README.md files in
+This should copy a series of input files/scripts into a `test_runs` folder and
+run a series of relatively quick test cases (see `README.md` files in
 subdirectories).
+Running tests additionally requires Python packages `pnmkit` and `image3kit`.
 
 
-# Technical notes for code developers
+# Technical Notes for Coding Agents
 
-GNU Makefile scripts are used primarily for code compilation and
-running quick tests by code developers.
+GNU Makefiles are used primarily for code compilation and
+running quick tests by developers.
+These are migrated to Pyhon only in pnmkit package, which consumes these porescale apps as optional dependencies.
 
-Automatic tests are written using input files for C++ codes, new C++
-executables testing internals of the codes and Python scripts. All
-these can be run using `make test` command, which uses
-script/testApp bash script.
+Automated tests are written using input files for C++ codes, new C++
+executables testing the internals of the code, and Python scripts. 
+All of these can be run using the `make test` command, which uses the
+`script/testApp` Bash script.
 
-All scripts, either for testing or production, which need mathematical
-calculations or plotting and are not performance critical are developed
-using Python. We use Python 3, shich should be available as python3 command.
-In Ubuntu (18.04-20.04) this can be installed by typing in a terminal:
- `sudo apt install python3`
+All scripts, either for testing or production, that require mathematical
+calculations or plotting and are not performance-critical are developed in Python.
 
-
-Bash/Shell scripts are used to run Makefile and Python scripts,
-either for testing or in production to simplify the run of openfoam
+Bash shell scripts are used to run Makefiles and Python scripts,
+either for testing or in production to simplify running OpenFOAM
 solvers.
 
 
-The initbash is an independent bash script containing utility macros,
-which together with bashrc (that contain installation variabls), is
-required for running of the compiled applications.
-
----------
-
-## Aims
-
-These scripts has been released as a separate module, to help
-the code developers with script re-use,and simplification of
-workflow for code compilation, testing, deployment and release.
+The `foam.bashrc` file contains Bash macros for managing OpenFOAM run cases,
+which, together with `bashrc` (which contains installation variables), is
+required for running the compiled applications.
 
 
 ---------
 
-##  Caution
+## Caution
 
-The scripts here use recursive make. These change and delete files on
-your system: the top directory where files are changed, generated or
-deleted is called msRoot which, by default, points to two directories
-upper to the location of these script themselves.  So, if you consider
-using these scripts for building your applications, make sure these are
-wrapped inside two (sub-)sub-folders, dedicated to source codes.  Here is
-what the directory structure should looks like:
+The scripts here use recursive `make`. They modify and delete files on
+your system: the top directory where files are modified, generated, or
+deleted is called `msRoot`, which by default points two directories
+above the location of these scripts themselves. Therefore, if you consider
+using these scripts for building your applications, make sure they are
+nested inside two subfolders dedicated to source code. Here is
+what the directory structure should look like:
 
 
 - `apps/ -------------------- msRoot directory`
 
-    - `src/ ----------------- -- source codes`
+    - `src/ ----------------- -- source code`
         * `script/ ---------- -- ** this module, build & install`
         * `include/ --------- -- ** C++ utility codes`
-        * `bench/ ----------- -- ** test/example data`
-        * `...`
         * `...`
 
-    - `pkgs/ ---------- -- others' source codes`
-        * `foamx4m ---------- -- ** a minified openfoam `
-        * `svplot ---------- -- ** a modified former svg_plot`
-        * `zlib`
-        * `libtiff`
+    - `pkgs/ ---------- -- external/third-party source code`
+        * `foamxm ---------- -- ** a minified OpenFOAM `
         * `...`
 
-    - `bench/ --------------- -- large input files, too large for src/`
-    - `test/ ---------------- -- test folder (auto copied from bench/)`
-    - `bin/ ----------------- -- executables folder (auto crea/deleted)`
-    - `lib/ ----------------- -- library files (auto crea/deleted)`
-    - `share/ --------------- -- configuration files (auto crea/deleted)`
-    - `build/ --------------- -- temporary files (auto crea/deleted)`
+    - `test_runs/ ----------- -- test folder (auto-created)`
+    - `bin/ ----------------- -- executables folder (auto-created/deleted)`
+    - `lib/ ----------------- -- library files (auto-created/deleted)`
+    - `share/ --------------- -- configuration files (auto-created/deleted)`
+    - `build/ --------------- -- temporary files (auto-created/deleted)`
     - `...`
 
 
 As shown above, this `script` folder is typically located in `src`
-(which holds regularly changed source codes as subdirectories). The
-less frequently changed source code are placed a directory called
-`pkgs`.  A bench folder is also sometimes included holding
-temporary/client data, as shown above.  A `.git` directory is kept
-outside the msRoot directory and is used to test and release varius
-modules of the code, which it ends up in the msRoot directory in the
-modules published using git.  The `build`, `bin`,`lib`, `test` and
-`share` folders are auto-generated and should not be used to store
-any user data as they are removed by `make distclean` command.
+(which holds actively changed source code in subdirectories).
+The less frequently changed source code is placed in the
+`pkgs` directory.
+The `build`, `bin`, `lib`, `test_runs`, and `share` folders are auto-generated and should not be used to store
+any user data --these are removed by the `make distclean` command.
 
 
 
 ## Makefile.in usage
 
- In `Makefile`s, define variables `tsts` together with `USE_msTEST=1`
- and `srcs` with `USE_msMAKE=1`.  If not defined, `srcs` will be set
- to all `.cpp` files.  Example Makefiles can be found in libvoxel
- (single source.cpp apps) or pnextract (multiple source.cpp files).
+ In `Makefile`s, define the variable `tsts` together with `USE_msTEST=1`
+ and `srcs` with `USE_msMAKE=1`. If not defined, `srcs` will be set
+ to all `.cpp` files. Example Makefiles can be found in `libvoxel`
+ (single `source.cpp` apps) or `pnextract` (multiple `source.cpp` files).
+
