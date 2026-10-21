@@ -277,7 +277,7 @@ AddObjDep = $(eval $(call _AddObjDep,$(1),$(2),$(3)))
 psAppDirs:
 	@echo  BuildDir: ${bildDir},   BinDir: ${msBinDir}
 	@mkdir -p ${msBinDir}
-	@mkdir -p ${msBinDir}/foamx4m
+	@mkdir -p ${msBinDir}/foamxm
 	@mkdir -p ${bildDir}
 
 msLibDirs:
@@ -294,8 +294,8 @@ ifdef USE_MINIFOAMX3
   WM_ARCH ?= linux64
   GFLAGS = -DWM_LABEL_SIZE=32
 
- ifneq ("$(wildcard ${ms3rd}/foamx4m)","")
-  WM_PROJECT_DIR ?= ${ms3rd}/foamx4m
+ ifneq ("$(wildcard ${ms3rd}/foamxm)","")
+  WM_PROJECT_DIR ?= ${ms3rd}/foamxm
   WM_PROJECT ?= foam
   WM_OSTYPE  ?= POSIX
   SO         ?= ext3.so

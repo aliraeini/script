@@ -18,7 +18,7 @@ export MS_INST ?= $(abspath ${msSrc}/..)
 export msBilDir ?= ${MS_INST}/build
 export MS_TEST_DIR ?= ${MS_INST}/test_runs
 export LD_LIBRARY_PATH := ${MS_INST}/lib:$(LD_LIBRARY_PATH)
-export PATH := ${MS_INST}/bin:${MS_INST}/bin/foamx4m:$(PATH)
+export PATH := ${MS_INST}/bin:${MS_INST}/bin/foamxm:$(PATH)
 
 
 #nproc = $(shell $(( $nproc < 1 ? 4 : $nproc )))
@@ -81,11 +81,11 @@ run_tests: checkRoot
 test: checkRoot run_tests
 	@echo "\n\033[34m Checking the test logs: \033[0m\n"
 	@for cas in $(shell find test_runs/ -type f | grep log) ; do \
-		(! grep -3 -E '\bError|\bFATAL|\bterminate|\bAborted|\bAborting|: error'  $${cas} ) \
+		(! grep -3 -E '\bError\b|\bFATAL|\bterminate|\bAborted|\bAborting|: error'  $${cas} ) \
 		|| printf "\n\n^^^\033[91m Error in $${cas} \033[0m \n================================================\n\n"; \
 	done
 	@for cas in $(shell find test_runs/ -type f | grep log) ; do \
-		(! grep -3 -E '\bError|\bFATAL|\bterminate|\bAborted|\bAborting|: error'  $${cas} >/dev/null )\
+		(! grep -3 -E '\bError\b|\bFATAL|\bterminate|\bAborted|\bAborting|: error'  $${cas} >/dev/null )\
 		|| exit 1; \
 	done
 	@echo "\033[34m No errors detected \033[0m"

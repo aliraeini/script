@@ -20,7 +20,7 @@ else
 	export MS_TEST_DIR=${MS_TEST_DIR:-$MS_INST/test_runs}
 
 	# prepend, so that these binaries take precedence over any other installation
-	export PATH=$msBinDir:$msBinDir/foamx4m:$msSrc/script:$msSrc/porefoam1f/script:$msSrc/porefoam2f/script:$PATH
+	export PATH=$msBinDir:$msBinDir/foamxm:$msSrc/script:$msSrc/porefoam1f/script:$msSrc/porefoam2f/script:$PATH
 	export LD_LIBRARY_PATH=$msLibDir:$LD_LIBRARY_PATH
 
 	# Openfoam vars

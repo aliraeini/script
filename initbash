@@ -10,10 +10,10 @@ if [ -z "$WM_PROJECT" ] ; then
 	#export WM_NCOMPPROCS=28
 	#export FOAM_INST_DIR=$(cd $myUpperDIR/../pkgs && pwd)
 	export FOAM_INST_DIR=${ms3rd:-$msRoot/pkgs}
-	source $FOAM_INST_DIR/foamx4m/etc/bashrc
-elif [[ "$WM_PROJECT_DIR" != "$msRoot/"*"/foamx4m" ]]; then
+	source $FOAM_INST_DIR/foamxm/etc/bashrc
+elif [[ "$WM_PROJECT_DIR" != "$msRoot/"*"/foamxm" ]]; then
 	printf "\n *** Using OpenFOAM:  $WM_PROJECT_DIR"
-	printf "\n *** If you meant to use foamx4m instead, deactivate this and re-source in a new terminal.\n\n"
+	printf "\n *** If you meant to use foamxm instead, deactivate this and re-source in a new terminal.\n\n"
 fi
 
 echo "msBinDir: $msBinDir"

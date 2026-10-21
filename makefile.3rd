@@ -1,7 +1,7 @@
 
 
 
-allSubdirs:=$(shell ls -d zlib libtiff hypre foamx4m 2>/dev/null)
+allSubdirs:=$(shell ls -d zlib libtiff hypre foamxm 2>/dev/null)
 $(info Thirdparty: $(allSubdirs) )
 all: $(allSubdirs)
 
@@ -71,19 +71,19 @@ libpng:
 	[ lPng  != "$(lPng)" ] || (cd  ${ms3rd}/libpng && $(MAKE) all OPT=${OPT})
 
 ifneq "${OPT}" ".exe"
-biltF=$(shell [ -d foamx4m ] && [ ! -f ${MS_INST}/lib/libfiniteVolume*.so ] && echo Foam)
-foamx4m:
+biltF=$(shell [ -d foamxm ] && [ ! -f ${MS_INST}/lib/libfiniteVolume*.so ] && echo Foam)
+foamxm:
 	@echo biltF: $(biltF)
-	+ [ Foam  != "$(biltF)" ] || (mkdir -p ${msBuild}/foamx4m                      ) || echo  skipping mkdir foamx4m
-	+ [ Foam  != "$(biltF)" ] || (rsync -art --update foamx4m ${msBuild}/          ) || echo  skipping rsync foamx4m
-	+ [ Foam  != "$(biltF)" ] || (cd ${msBuild}/foamx4m  && ./AllMak${OPT}e        ) || echo  skipping AllMak${OPT}e foamx4m
-	[   Foam  != "$(biltF)" ] || (cd ${msBuild}/foamx4m  && ./AllInstall  ${MS_INST}) || echo  skipping AllInstall foamx4m
+	+ [ Foam  != "$(biltF)" ] || (mkdir -p ${msBuild}/foamxm                      ) || echo  skipping mkdir foamxm
+	+ [ Foam  != "$(biltF)" ] || (rsync -art --update foamxm ${msBuild}/          ) || echo  skipping rsync foamxm
+	+ [ Foam  != "$(biltF)" ] || (cd ${msBuild}/foamxm  && ./AllMak${OPT}e        ) || echo  skipping AllMak${OPT}e foamxm
+	[   Foam  != "$(biltF)" ] || (cd ${msBuild}/foamxm  && ./AllInstall  ${MS_INST}) || echo  skipping AllInstall foamxm
 else
-foamx4m:; @echo skipping foamx4m
+foamxm:; @echo skipping foamxm
 endif
 
 clean:
-	(cd foamx4m  2>/dev/null  &&  ./AllDistclean) || echo !!
+	(cd foamxm  2>/dev/null  &&  ./AllDistclean) || echo !!
 
 distclean:
-	(cd foamx4m  2>/dev/null  &&  ./AllDistclean) || echo !!
+	(cd foamxm  2>/dev/null  &&  ./AllDistclean) || echo !!
