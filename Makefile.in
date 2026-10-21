@@ -35,21 +35,27 @@ ifndef msSrc  # set msSrc to upper directory if not already set
  $(info msSrc set to ${msSrc})
 endif
 
-# Use .env file to set msInst, msTstDir and/or msBilDir vars
+# Use .env file to set MS_INST, MS_TEST_DIR and/or msBilDir vars
 ifneq ($(wildcard ${msSrc}/../.env),)
   include ${msSrc}/../.env
 endif
 
-# set msBinDir if not set, msInst is also set from .msRoot for .exe OPT
-export msInst ?= $(abspath ${msSrc}/..)
+# set msBinDir if not set, MS_INST is also set from .msRoot for .exe OPT
+export MS_INST ?= $(abspath ${msSrc}/..)
 export msRoot ?= $(abspath ${msSrc}/..)
-export msBinDir ?= ${msInst}/bin
-export msLibDir ?= ${msInst}/lib
-export msBilDir ?= ${msInst}/build
-export msTstDir ?= ${msInst}/test_runs
+export msBinDir ?= ${MS_INST}/bin
+export msLibDir ?= ${MS_INST}/lib
+export msBilDir ?= ${MS_INST}/build
+export MS_TEST_DIR ?= ${MS_INST}/test_runs
 
 
 # set thirdparty pkgs directory if not set
+# pocketpy checkout, set POCKETPY_DIR in .env to use another one
+POCKETPY_DIR ?= ${msRoot}/pkgs/pocketpy
+
+# image3kit checkout, set IMAGE3KIT_DIR in .env to use another one
+IMAGE3KIT_DIR ?= ${msSrc}/image3kit
+
 ifndef ms3rd
   ifneq ("$(wildcard ${msRoot}/pkgs/)","")
    ms3rd := ${msRoot}/pkgs
@@ -69,12 +75,27 @@ ifdef MS_VERSION
   msCFLAGS += -DMS_VERSION=${MS_VERSION}
 endif
 
-msCFLAGS += -I${msSrc}/include -I${msInst}/include -DRELEASE_DATE=$(msReleaseDate) -D_FILE_OFFSET_BITS=64
+msCFLAGS += -I${msSrc}/include -I${MS_INST}/include -DRELEASE_DATE=$(msReleaseDate) -D_FILE_OFFSET_BITS=64
 msLFLAGS += -L$(msLibDir)
 
 
 InDir=In $(notdir $(abspath $(dir $(PWD))))/$(notdir $(PWD)): ***
 
+
+# image3kit voxlib
+ifeq (${USE_VOX_IMG},1)
+  USE_POCKETPY ?= 1
+  msCFLAGS := -I${IMAGE3KIT_DIR}/common $(msCFLAGS)
+  msCFLAGS += -I${IMAGE3KIT_DIR}/voxlib -I${IMAGE3KIT_DIR}/pkgs/stb -I${IMAGE3KIT_DIR}/pkgs/zlib -I${IMAGE3KIT_DIR}/pkgs/svplot
+  srcs += ${IMAGE3KIT_DIR}/voxlib/voxelImage.cpp ${IMAGE3KIT_DIR}/voxlib/voxelImgUtils.cpp
+  ifeq (${USE_POCKETPY},1)
+    srcs += ${IMAGE3KIT_DIR}/voxlib/bind_pocketpy.cpp
+    msCFLAGS += -I${IMAGE3KIT_DIR}/src
+  endif # USE_POCKETPY
+  ifndef USE_VOX_FULL
+    msCFLAGS += -DVOX_BASIC
+  endif # USE_VOX_FULL
+endif # USE_VOX_IMG
 
 ifeq (${USE_VXIMG},1)
  ifndef USED_VXLIB
@@ -90,17 +111,23 @@ endif # USE_VXIMG
 
 
 
-# set libtiff install directory: TIFDIR
+# sudo apt-get install  zlib1g-dev libtiff-dev libjpeg-dev liblzma-dev
+
+# set libtiff install directory: TIFDIR, an installed copy in MS_INST has priority over the system one
 ifdef USE_TIFF
- TIFDIR?=${msInst}
- ifneq ("$(wildcard ${TIFDIR}/include/tiff.h)","")
-   msCFLAGS += -I${TIFDIR}/include -DTIFLIB
-   msLFLAGS += -L${TIFDIR}/libtiff -ltiff -ltiffxx
+ ifeq ("$(wildcard ${MS_INST}/include/tiff.h)","")
+   TIFDIR ?= /usr
+   TifArc ?= /x86_64-linux-gnu
+ else
+   TIFDIR = ${MS_INST}
+   TifArc :=
+ endif
+ ifneq ("$(wildcard ${TIFDIR}/include${TifArc}/tiff.h)","")
+   msCFLAGS += -I${TIFDIR}/include${TifArc} -DTIFLIB
+   msLFLAGS += -L${TIFDIR}/lib${TifArc} -ltiff -ltiffxx
 
    ifneq ($(shell ${msCXX} -ljpeg 2>&1 | grep ljpeg > /dev/null; echo $$?),0)
        msLFLAGS += -ljpeg
-   #else
-     #$(info ignoring jpeg)
    endif
 
    ifneq ($(shell ${msCXX} -llzma 2>&1 | grep llzma > /dev/null; echo $$?),0)
@@ -108,30 +135,44 @@ ifdef USE_TIFF
    endif
 
  else
-   $(info $(RED) $(InDir) tiff.h not found in ${TIFDIR}/include, nor in ${msInst}/include/, ignoring USE_TIFF $(RESET))
+   $(info $(RED) $(InDir) tiff.h not found in ${TIFDIR}/include${TifArc}, nor in ${MS_INST}/include/, ignoring USE_TIFF $(RESET))
    $(info $(RED) Hint: maybe run make in top-level directory $(RESET))
  endif
 endif
 
 
 
-# set zlib directory
+# set zlib directory, set ZLIBDIR?=${MS_INST} in .env to override
 # Note: ${ZLIBDIR}/contrib/iostream3/zfstream.h should be installed too
 ifdef USE_ZLIB
- ZLIBDIR?=${msInst}
+ ZLIBDIR ?= /usr
  ifneq ("$(wildcard ${ZLIBDIR}/include/zlib.h)","")
    msCFLAGS += -I${ZLIBDIR}/include -DZLIB
    msLFLAGS += -L${ZLIBDIR}/lib -lz
+   ifeq ("$(wildcard ${ZLIBDIR}/include/zfstream.h)","")
+     msCFLAGS += -I${IMAGE3KIT_DIR}/pkgs/zlib
+   endif
  else
-   $(info $(RED) InstDir: ${msInst}  ${ZLIBDIR}/include/zlib.h, not found, ignoring USE_ZLIB $(RESET))
+   $(info $(RED) InstDir: ${MS_INST}  ${ZLIBDIR}/include/zlib.h, not found, ignoring USE_ZLIB $(RESET))
  endif
 endif
 
 
 
+# pocketpy, embedded python used for VxlPy scripts in image headers (built by makefile.3rd)
+ifdef USE_POCKETPY
+ ifneq ("$(wildcard ${MS_INST}/lib/libpocketpy.a)","")
+   msCFLAGS += -I${POCKETPY_DIR}/include -D_POCKETPY
+   msCCFLAGS += -I${POCKETPY_DIR}/include -D_POCKETPY
+   msLFLAGS += -L${MS_INST}/lib -lpocketpy
+ else
+   $(info $(RED) ${MS_INST}/lib/libpocketpy.a not found, ignoring USE_POCKETPY $(RESET))
+ endif
+endif
+
 # set hypre directory, also gnflow multithreading
 ifdef USE_HYPRE
- HYPREDIR=${msInst}
+ HYPREDIR=${MS_INST}
  ifeq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
    HYPREDIR=${ms3rd}/hypre/src/hypre
  endif
@@ -148,7 +189,7 @@ endif
 
 # set hypre directory, also gnflow multithreading -DMULTITHREAD
 ifdef USE_HYPRESEQ
- HYPREDIR=${msInst}
+ HYPREDIR=${MS_INST}
  ifeq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
    HYPREDIR=${ms3rd}/hypre/src/hypre
  endif
@@ -253,7 +294,7 @@ ifdef USE_MINIFOAMX3
   WM_ARCH ?= linux64
   GFLAGS = -DWM_LABEL_SIZE=32
 
- ifneq ("$(wildcard ${msRoot}/pkgs/foamx4m)","")
+ ifneq ("$(wildcard ${ms3rd}/foamx4m)","")
   WM_PROJECT_DIR ?= ${ms3rd}/foamx4m
   WM_PROJECT ?= foam
   WM_OSTYPE  ?= POSIX
@@ -261,8 +302,8 @@ ifdef USE_MINIFOAMX3
   # this could cause conflicts if openfoam is compiled differently:
   WM_MPLIB   ?= SYSTEMOPENMPI
   include $(WM_PROJECT_DIR)/wmake/rules/linux64Gcc/mplib$(WM_MPLIB)
-  GFLAGS += -DFOAMX
-  OFInsDIR=${msInst}
+  GFLAGS += -DFOAMX -DFOAMXM
+  OFInsDIR=${MS_INST}
  else
   $(info WM_PROJECT_DIR= $(WM_PROJECT_DIR))
   WM_PROJECT ?= OpenFOAM
@@ -313,7 +354,17 @@ endif  # USE_MINIFOAMX3
 ifdef   USE_msRecurse
 
 makls=$(shell find */ -maxdepth 1 -type f | grep -e    /makefile$$     | grep -v [\ \(\)] | grep -v [-]/ | sed s/\\/makefile//g)
-makes=$(shell find */ -maxdepth 1 -type f | grep -e    /Makefile$$     | grep -v [\ \(\)] | grep -v [-]/ | sed s/\\/Makefile//g)
+# image3kit is a library (with its own tests), only its tools are built here, after libvoxel as they have the same names
+# (written with __ for /, as make pattern rules do not match names with a /), only in the top src folder
+ifeq (${CURDIR},${msSrc})
+ msExtraMakes ?= image3kit__vxlToFoam image3kit__voxapp image3kit__vxlToSurf
+endif
+makes=$(shell find */ -maxdepth 1 -type f | grep -e    /Makefile$$     | grep -v [\ \(\)] | grep -v [-]/ | sed s/\\/Makefile//g | grep -v -x image3kit) ${msExtraMakes}
+make_image3kit__vxlToFoam make_image3kit__voxapp make_image3kit__vxlToSurf: make_libvoxel
+make_image3kit__vxlToSurf: make_porefoam2f
+make_image3kit__vxlToFoam make_image3kit__vxlToSurf: export MS_VERSION=2
+# same executable and source file names as in porefoam2f/utilities, keep the objects apart
+make_image3kit__vxlToSurf: export bildDir=$(msBilDir)/image3kit_vxlToSurf
 
 recurseMake:
 	@$(MAKE) -f ${msSrc}/script/Makefile.in recurseMakeLibs USE_msRecurse=1
@@ -331,13 +382,13 @@ recurseMakeLibs: $(addprefix make_,${makls})
 recurseMakeExes: $(addprefix make_,${makes})
 
 make_%:; @printf '\n$@: \n'
-	@(cd  $(@:make_%=%)  && $(MAKE)  USE_msRecurse='')
+	@(cd  $(subst __,/,$(@:make_%=%))  && $(MAKE)  USE_msRecurse='')
 
 clean_%:; @printf '\n$@: \n'
-	@(cd  $(@:clean_%=%) && $(MAKE) clean  USE_msRecurse='' || echo '  check clean target for $(PWD)/$(@:clean_%=%)' )
+	@(cd  $(subst __,/,$(@:clean_%=%)) && $(MAKE) clean  USE_msRecurse='' || echo '  check clean target for $(PWD)/$(@:clean_%=%)' )
 
 test_%:; @printf '\n$@: \n'
-	@(cd  $(@:test_%=%) && $(MAKE) test  USE_msRecurse='' || echo '  check test target for $(PWD)/$(@:test_%=%)' )
+	@(cd  $(subst __,/,$(@:test_%=%)) && $(MAKE) test  USE_msRecurse='' || echo '  check test target for $(PWD)/$(@:test_%=%)' )
 
 else
   recurseMake:  ; $(error recurseMake  target requested without USE_msRecurse=1, $^)
@@ -386,7 +437,7 @@ endif #  USE_SINGLECPP
 
 
 
-msCmakeFLAGS +=  -DCMAKE_INSTALL_PREFIX=${msInst}
+msCmakeFLAGS +=  -DCMAKE_INSTALL_PREFIX=${MS_INST}
 
 ################## compile Cmake app/lib ##################:
 ifdef USE_msCMAKE
@@ -453,10 +504,11 @@ endif  #  USE_msMAKE
 
 ifdef USE_msTEST #################### run tests #################################:
 
-testDir = ${msTstDir}/${exec}
+testDir = ${MS_TEST_DIR}/${exec}
 #$(shell basename ${CURDIR})${OPT}
 testDirs:
 	@mkdir -p ${testDir}
+	@[ -z "${tstdata}" ] || cp -a ${tstdata} ${testDir}/
 
   # t_ is making targets .PHONY (re-run anyway)
   tsts2test = $(addprefix T${testDir}/,$(subst /,__,$(subst ..,++,$(tsts))))

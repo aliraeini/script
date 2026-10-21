@@ -9,7 +9,7 @@ tstDir=$1;   tstApp=$2;  tstInp=$3;  apsDir=$4
 
 [ -n "$apsDir" ] || apsDir=$(cd "$(dirname ${BASH_SOURCE[0]})/../.." && pwd)
 
-if [ -z "$msInst" ] || ! [  "$PATH" == *"$msInst/bin"* ] ; then
+if [ -z "$MS_INST" ] || ! [  "$PATH" == *"$MS_INST/bin"* ] ; then
   echo "source $apsDir/src/script/bashrc # from run test";
   source ${apsDir}/src/script/bashrc
 else  [ "$msRoot" == "$apsDir" ] || exit ; fi

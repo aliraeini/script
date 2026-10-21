@@ -4,16 +4,21 @@
 # order matters
 curMkfil:=$(lastword $(MAKEFILE_LIST))
 
+export msRoot := ${CURDIR}
 export msSrc := ${CURDIR}/src
 export ms3rd := ${CURDIR}/pkgs
 
-# Use .env file to set msInst, msTstDir and/or msBilDir vars
+# Use .env file to set MS_INST, MS_TEST_DIR and/or msBilDir vars
 ifneq ($(wildcard ${CURDIR}/.env),)
   include ${CURDIR}/.env
 endif
 
-export msInst ?= $(abspath ${msSrc}/..)
-export msTstDir ?= ${msInst}/test_runs
+export POCKETPY_DIR ?= ${ms3rd}/pocketpy
+export MS_INST ?= $(abspath ${msSrc}/..)
+export msBilDir ?= ${MS_INST}/build
+export MS_TEST_DIR ?= ${MS_INST}/test_runs
+export LD_LIBRARY_PATH := ${MS_INST}/lib:$(LD_LIBRARY_PATH)
+export PATH := ${MS_INST}/bin:${MS_INST}/bin/foamx4m:$(PATH)
 
 
 #nproc = $(shell $(( $nproc < 1 ? 4 : $nproc )))
@@ -22,40 +27,42 @@ export msTstDir ?= ${msInst}/test_runs
 
 # Build for Linux
 all:            checkRoot
-	mkdir -p ${msInst}/lib
-	mkdir -p ${msInst}/bin
-	mkdir -p ${msInst}/include
+	mkdir -p ${MS_INST}/lib
+	mkdir -p ${MS_INST}/bin
+	mkdir -p ${MS_INST}/include
 	(cd ${ms3rd} && $(MAKE) -f ${msSrc}/script/makefile.3rd  zlib)
 	(cd ${ms3rd} && $(MAKE) -f ${msSrc}/script/makefile.3rd )
+	(cd ${ms3rd} && $(MAKE) -f ${msSrc}/script/makefile.3rd pocketpy)
 	(cd ${msSrc} && $(MAKE) -f ${msSrc}/script/Makefile.in recurseMake USE_msRecurse=1)
 	@echo done
 
 # Build for Windows
 mgw:            checkRoot
-	mkdir -p ${msInst}/lib
-	mkdir -p ${msInst}/bin
-	mkdir -p ${msInst}/include
+	mkdir -p ${MS_INST}/lib
+	mkdir -p ${MS_INST}/bin
+	mkdir -p ${MS_INST}/include
 	(cd ${ms3rd} && $(MAKE) -f ${msSrc}/script/makefile.3rd  OPT=.exe)
 	(cd ${msSrc} && $(MAKE) -f ${msSrc}/script/Makefile.in recurseMake  OPT=.exe USE_msRecurse=1)
-	(cd ${msInst}/bin && make -f ${msSrc}/script/Makefile.msRoot  checksum) || echo check checksum
+	(cd ${MS_INST}/bin && make -f ${msSrc}/script/Makefile.msRoot  checksum) || echo check checksum
 	@echo done
 
 
 clean:          checkRoot
 	(cd ${ms3rd} && $(MAKE) -f ${msSrc}/script/makefile.3rd  clean)
 	(cd ${msSrc} && $(MAKE) -f ${msSrc}/script/Makefile.in recurseClean USE_msRecurse=1)
-	rm -rf  ${msInst}/build ${msSrc}/*/__pycache__  log.make
+	rm -rf  ${MS_INST}/build ${msSrc}/*/__pycache__  log.make
 
 distclean:      checkRoot clean
 	@echo "\n\nWarning:\n\n   deleting log.make, bin/, include/, lib/, share/ and test/, in 10s\n"
 	@bash -c 'read -t 10 -p "   press Entre to proceed,  Ctrl+c to stop? "' || echo deleting
 	sleep 2
-	rm -rf   ${msInst}/bin  ${msInst}/include  ${msInst}/lib  ${msInst}/share ${msInst}/test
+	rm -rf   ${MS_INST}/bin  ${MS_INST}/include  ${MS_INST}/lib  ${MS_INST}/share ${MS_INST}/test
 	(cd ${ms3rd} && $(MAKE) -f ${msSrc}/script/makefile.3rd  distclean)
 
 checkRoot:
 	@echo  "src/script/Makefile.msRoot == ${curMkfil}? "
 	@[ "src/script/Makefile.msRoot" =  "${curMkfil}" ] || (echo Error: ran make from wrong directory && false)
+	@$(foreach d,${MS_INST} ${msBilDir} ${MS_TEST_DIR}, [ -n "$(filter ${CURDIR}/% ${CURDIR},$(abspath ${d}))" ] || (echo "Error: ${d} is outside ${CURDIR}, check .env and your environment" && false);)
 	@echo  :/
 
 

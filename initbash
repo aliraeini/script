@@ -9,7 +9,7 @@ if [ -z "$WM_PROJECT" ] ; then
 	# Change according to your openfoam installation directory
 	#export WM_NCOMPPROCS=28
 	#export FOAM_INST_DIR=$(cd $myUpperDIR/../pkgs && pwd)
-	export FOAM_INST_DIR=$msRoot/pkgs
+	export FOAM_INST_DIR=${ms3rd:-$msRoot/pkgs}
 	source $FOAM_INST_DIR/foamx4m/etc/bashrc
 elif [[ "$WM_PROJECT_DIR" != "$msRoot/"*"/foamx4m" ]]; then
 	printf "\n *** Using OpenFOAM:  $WM_PROJECT_DIR"
@@ -81,7 +81,7 @@ runMPI() {
     else
         echo "Running $APP_NAME $@  >  $PWD/$LOG_NAME , using $np processes"
         # --bind to none ( mpirun -x LD_LIBRARY_PATH -x PATH -x WM_PROJECT_DIR -x WM_PROJECT_INST_DIR -x MPI_BUFFER_SIZE         --mca btl_tcp_if_exclude lo --mca btl_tcp_if_exclude eth0:avahi  --hostfile  machines.txt -np $np $APP_RUN  -parallel "$@" < /dev/null > $LOG_NAME 2>&1 )
-        nice mpirun.openmpi  -np $np $APP_RUN -parallel "$@" < /dev/null > $LOG_NAME 2>&1
+        nice mpirun.openmpi -x LD_LIBRARY_PATH -np $np $APP_RUN -parallel "$@" < /dev/null > $LOG_NAME 2>&1
         ErCd=$?
         [[ $ErCd == 0 ]] || echo "Error: $APP_RUN -parallel $@,  exit status: $ErCd, see $(pwd)/$LOG_NAME"
     fi

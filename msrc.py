@@ -22,20 +22,20 @@ import inspect
 msEnv = os.environ.copy(); pass
 
 msSrc = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # script directory
-if "msInst" in msEnv and "PATH" in msEnv and os.path.join(msEnv["msInst"],"bin") in msEnv["PATH"]:
+if "MS_INST" in msEnv and "PATH" in msEnv and os.path.join(msEnv["MS_INST"],"bin") in msEnv["PATH"]:
 	if msSrc!=msEnv['msSrc']: print("Info: not resetting msSrc: "+msEnv['msSrc'])
 	msSrc= msEnv['msSrc'];
 else :
 	print(("Setting msSrc:",msSrc))
 	sep=os.pathsep;
-	msInst = os.path.abspath(msSrc+"/../..")
+	MS_INST = os.path.abspath(msSrc+"/..")
 	msEnv["PATH"] = msEnv["PATH"] +sep+ msSrc+"/script"
 	msEnv["PATH"] = msEnv["PATH"] +sep+ msSrc+"/porefoam1f/script"
 	msEnv["PATH"] = msEnv["PATH"] +sep+ msSrc+"/porefoam2f/script"
 	msEnv["PATH"] = msEnv["PATH"] +sep+ msSrc+"/gnm/script/PNM"
-	try:    msEnv["LD_LIBRARY_PATH"] = msEnv["LD_LIBRARY_PATH"] +sep+msInst+"/lib"
-	except: msEnv["LD_LIBRARY_PATH"] = msInst+"/lib"
-	msEnv["PATH"] = msEnv["PATH"] +sep+ msInst+"/bin"
+	try:    msEnv["LD_LIBRARY_PATH"] = msEnv["LD_LIBRARY_PATH"] +sep+MS_INST+"/lib"
+	except: msEnv["LD_LIBRARY_PATH"] = MS_INST+"/lib"
+	msEnv["PATH"] = msEnv["PATH"] +sep+ MS_INST+"/bin"
 	sys.path.append(msSrc+"/pylib")
 	msEnv.update({'msSrc':msSrc})
 	os.environ.update({'msSrc':msSrc})

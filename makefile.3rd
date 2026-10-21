@@ -6,15 +6,15 @@ $(info Thirdparty: $(allSubdirs) )
 all: $(allSubdirs)
 
 
-.PHONY:  clean $(allSubdirs)
+.PHONY:  clean pocketpy $(allSubdirs)
 
 export msRoot ?= $(abspath ..)
-export msInst ?= $(abspath ..)
-$(info msRoot: ${msRoot}   ***   msInst: ${msInst} *** OPT: ${OPT})
+export MS_INST ?= $(abspath ..)
+$(info msRoot: ${msRoot}   ***   MS_INST: ${MS_INST} *** OPT: ${OPT})
 
-msBuild=${msInst}/build
+msBuild=${MS_INST}/build
 
-CmakeOpts= -DBUILD_SHARED_LIBS=False  -DCMAKE_INSTALL_PREFIX=${msInst}  -DCMAKE_TOOLCHAIN_FILE=${msRoot}/src/script/toolchain${OPT}.txt
+CmakeOpts= -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SHARED_LIBS=False  -DCMAKE_INSTALL_PREFIX=${MS_INST}  -DCMAKE_TOOLCHAIN_FILE=${msRoot}/src/script/toolchain${OPT}.txt
 
 
 ms3rd ?= ${CURDIR}
@@ -22,26 +22,26 @@ $(info ms3rd set to ${ms3rd})
 
 
 
-biltT=$(shell [ -d ${ms3rd}/libtiff ] && [ ! -f ${msInst}/lib/libtiffxx.a ] && echo Tiff)
+biltT=$(shell [ -d ${ms3rd}/libtiff ] && [ ! -f ${MS_INST}/lib/libtiffxx.a ] && echo Tiff)
 libtiff:
 	[ Tiff != "$(biltT)" ] || (mkdir -p $(msBuild)/libtif )
 	[ Tiff != "$(biltT)" ] || (cd       $(msBuild)/libtif && cmake ${CmakeOpts} ${ms3rd}/libtiff)
 	[ Tiff != "$(biltT)" ] || (cd       $(msBuild)/libtif && $(MAKE) install)
 
 
-biltHP=$(shell [ -d ${ms3rd}/hypre/src ] && [ ! -f ${msInst}/lib/libHYPRE.a ] && echo Hypre)
+biltHP=$(shell [ -d ${ms3rd}/hypre/src ] && [ ! -f ${MS_INST}/lib/libHYPRE.a ] && echo Hypre)
 hyprePar:
 	[ Hypre != "$(biltHP)" ] || (mkdir -p $(msBuild)/hyprePar )
 	[ Hypre != "$(biltHP)" ] || (cd       $(msBuild)/hyprePar && cmake ${CmakeOpts}  -DHYPRE_WITH_OPENMP=ON  -DHYPRE_WITH_MPI=OFF  ${ms3rd}/hypre/src )
 	[ Hypre != "$(biltHP)" ] || (cd       $(msBuild)/hyprePar && $(MAKE) install)
 
 
-biltH=$(shell [ -d ${ms3rd}/hypre/src ] && [ ! -f ${msInst}/lib/libHYPRESeq.a ] && echo HypreSq)
+biltH=$(shell [ -d ${ms3rd}/hypre/src ] && [ ! -f ${MS_INST}/lib/libHYPRESeq.a ] && echo HypreSq)
 hypre:
 	[ HypreSq != "$(biltH)" ] || (mkdir -p $(msBuild)/hypreSeq )
 	[ HypreSq != "$(biltH)" ] || (cd       $(msBuild)/hypreSeq && cmake  -DHYPRE_WITH_MPI=OFF  -DHYPRE_SEQUENTIAL=ON ${CmakeOpts} ${ms3rd}/hypre/src )
 	[ HypreSq != "$(biltH)" ] || (cd       $(msBuild)/hypreSeq && $(MAKE) install)
-	[ HypreSq != "$(biltH)" ] || (mv    ${msInst}/lib/libHYPRE.a  ${msInst}/lib/libHYPRESeq.a)
+	[ HypreSq != "$(biltH)" ] || (mv    ${MS_INST}/lib/libHYPRE.a  ${MS_INST}/lib/libHYPRESeq.a)
 
 #hypreDbg:
 #	(cp -r hypre-2.11.2 hypre-2.11.2Dbg)
@@ -49,25 +49,35 @@ hypre:
 #	(cd hypre-2.11.2Dbg/src && make)
 
 
-biltZ=$(shell [ -d ${ms3rd}/zlib ] && [ ! -f ${msInst}/lib/libz.a ] && echo Zlib)
+biltZ=$(shell [ -d ${ms3rd}/zlib ] && [ ! -f ${MS_INST}/lib/libz.a ] && echo Zlib)
+
+biltP=$(shell [ -d ${POCKETPY_DIR} ] && [ ! -f ${MS_INST}/lib/libpocketpy.a ] && echo PocketPy)
+pocketpy:
+	[ PocketPy != "$(biltP)" ] || ( \
+	  mkdir -p ${msBuild}/pocketpy && cd ${msBuild}/pocketpy && \
+	  cmake ${CmakeOpts} -DPK_BUILD_STATIC_LIB=ON -DPK_BUILD_SHARED_LIB=OFF -DPK_BUILD_STATIC_MAIN=OFF -DPK_BUILD_MATH_TESTS=OFF -DPK_BUILD_MODULE_LZ4=OFF -DPK_BUILD_MODULE_CUTE_PNG=OFF -DPK_BUILD_MODULE_MSGPACK=OFF -DPK_BUILD_MODULE_PERIPHERY=OFF ${POCKETPY_DIR} && \
+	  $(MAKE) install \
+	)
+
+
 zlib:
 	[ Zlib  != "$(biltZ)" ] || (mkdir -p $(msBuild)/zlib )
 	[ Zlib  != "$(biltZ)" ] || (cd       $(msBuild)/zlib &&  cmake ${CmakeOpts} ${ms3rd}/zlib)
 	[ Zlib  != "$(biltZ)" ] || (cd       $(msBuild)/zlib && $(MAKE) install)
 
 
-lPng=$(shell [ -d ${ms3rd}/libpng ] && [ ! -f ${msInst}/lib/libpng.a ] && echo lPng)
+lPng=$(shell [ -d ${ms3rd}/libpng ] && [ ! -f ${MS_INST}/lib/libpng.a ] && echo lPng)
 libpng:
 	[ lPng  != "$(lPng)" ] || (cd  ${ms3rd}/libpng && $(MAKE) all OPT=${OPT})
 
 ifneq "${OPT}" ".exe"
-biltF=$(shell [ -d foamx4m ] && [ ! -f ${msInst}/lib/libfiniteVolume*.so ] && echo Foam)
+biltF=$(shell [ -d foamx4m ] && [ ! -f ${MS_INST}/lib/libfiniteVolume*.so ] && echo Foam)
 foamx4m:
 	@echo biltF: $(biltF)
 	+ [ Foam  != "$(biltF)" ] || (mkdir -p ${msBuild}/foamx4m                      ) || echo  skipping mkdir foamx4m
 	+ [ Foam  != "$(biltF)" ] || (rsync -art --update foamx4m ${msBuild}/          ) || echo  skipping rsync foamx4m
 	+ [ Foam  != "$(biltF)" ] || (cd ${msBuild}/foamx4m  && ./AllMak${OPT}e        ) || echo  skipping AllMak${OPT}e foamx4m
-	[   Foam  != "$(biltF)" ] || (cd ${msBuild}/foamx4m  && ./AllInstall  ${msInst}) || echo  skipping AllInstall foamx4m
+	[   Foam  != "$(biltF)" ] || (cd ${msBuild}/foamx4m  && ./AllInstall  ${MS_INST}) || echo  skipping AllInstall foamx4m
 else
 foamx4m:; @echo skipping foamx4m
 endif

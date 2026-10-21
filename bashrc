@@ -1,7 +1,7 @@
 #!/bin/bash
 
 myUprDIR=$(cd "$(dirname ${BASH_SOURCE[0]})/.." && pwd)
-if [  -n "$msInst" ] && [  "$PATH" == *"$msInst/bin"* ]; then
+if [  -n "$MS_INST" ] && [  "$PATH" == *"$MS_INST/bin"* ]; then
 	echo "Info: msSrc(=$msSrc) is NOT reset from $myUprDIR"
 	if [ "$msSrc" != "$myUprDIR" ]; then
 		echo "Hint, try reseting your (terminal) session and its settings";
@@ -10,24 +10,20 @@ else
 
 	export msSrc="$myUprDIR"
 	export msRoot=$( cd "$msSrc/../" && pwd )
-	(! [ -f "$msRoot/.env" ]) || source "$msRoot/.env"
-	export msInst=${msInst:-$msRoot}
-	[ "$msInst" != "$HOME" ] || ! echo "Bad msInst: $msInst, put apps inside another subfolder and try again" || return
-	export msBinDir=$msInst/bin
-	export msLibDir=$msInst/lib
-	export msIncDir=$msInst/include
-	export msBilDir=${msBilDir:-$msInst/build}
-	export msTstDir=${msTstDir:-$msInst/test_runs}
+	if [ -f "$msRoot/.env" ]; then set -a; source "$msRoot/.env"; set +a; fi
+	export MS_INST=${MS_INST:-$msRoot}
+	[ "$MS_INST" != "$HOME" ] || ! echo "Bad MS_INST: $MS_INST, put apps inside another subfolder and try again" || return
+	export msBinDir=$MS_INST/bin
+	export msLibDir=$MS_INST/lib
+	export msIncDir=$MS_INST/include
+	export msBilDir=${msBilDir:-$MS_INST/build}
+	export MS_TEST_DIR=${MS_TEST_DIR:-$MS_INST/test_runs}
 
-	# maybe safer to prepend PATHs?
-	export PATH=$PATH:$msSrc/script
-	export PATH=$PATH:$msSrc/porefoam1f/script
-	export PATH=$PATH:$msSrc/porefoam2f/script
-	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$msLibDir
-	export PATH=$PATH:$msBinDir
+	# prepend, so that these binaries take precedence over any other installation
+	export PATH=$msBinDir:$msBinDir/foamx4m:$msSrc/script:$msSrc/porefoam1f/script:$msSrc/porefoam2f/script:$PATH
+	export LD_LIBRARY_PATH=$msLibDir:$LD_LIBRARY_PATH
 
 	# Openfoam vars
-	export PATH=$PATH:$msBinDir/foamx4m
 	export FOAM_ABORT=1
 
 	export PYTHONPATH=$msSrc/script:$msSrc/pylib:$PYTHONPATH
