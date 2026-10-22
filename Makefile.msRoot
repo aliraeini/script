@@ -89,7 +89,7 @@ run_tests: checkRoot
 # testDeps: extra prerequisites (tests) of a parent project, set before including this file
 test: checkRoot ${testDeps} run_tests
 	@echo "\n\033[34m Checking the test logs: \033[0m\n"
-	@for cas in $(shell find test_runs/ -type f | grep log) ; do \
+	@for cas in $(shell find ${MS_TEST_DIR}/ -type f | grep log) ; do \
 		(! grep -3 -E '\bError\b|\bFATAL|terminate called|\bAborted|\bAborting|: error'  $${cas} ) \
 		|| printf "\n\n^^^\033[91m Error in $${cas} \033[0m \n================================================\n\n"; \
 	done
