@@ -4,15 +4,18 @@
 # order matters
 curMkfil:=$(lastword $(MAKEFILE_LIST))
 
-export msRoot := ${CURDIR}
-export msSrc := ${CURDIR}/src
-export ms3rd := ${CURDIR}/pkgs
+export msRoot ?= ${CURDIR}
+export msSrc ?= ${CURDIR}/src
+export ms3rd ?= ${CURDIR}/pkgs
 
 # Use .env file to set MS_INST, MS_TEST_DIR and/or msBilDir vars
 ifneq ($(wildcard ${CURDIR}/.env),)
   include ${CURDIR}/.env
 endif
 
+ifdef HWLOC_COMPONENTS
+  export HWLOC_COMPONENTS  # e.g. -opencl, see .env.example
+endif
 export POCKETPY_DIR ?= ${ms3rd}/pocketpy
 export MS_INST ?= $(abspath ${msSrc}/..)
 export msBilDir ?= ${MS_INST}/build
@@ -34,7 +37,11 @@ all:            checkRoot
 	(cd ${ms3rd} && $(MAKE) -f ${msSrc}/script/makefile.3rd )
 	(cd ${ms3rd} && $(MAKE) -f ${msSrc}/script/makefile.3rd pocketpy)
 	(cd ${msSrc} && $(MAKE) -f ${msSrc}/script/Makefile.in recurseMake USE_msRecurse=1)
+	+$(MAKE) post_all
 	@echo done
+
+# Hook for a parent project: it can add (double-colon) recipes of its own, run after 'all', in the top level Makefile
+post_all::;
 
 # Build for Windows
 mgw:            checkRoot
@@ -62,7 +69,7 @@ distclean:      checkRoot clean
 checkRoot:
 	@echo  "src/script/Makefile.msRoot == ${curMkfil}? "
 	@[ "src/script/Makefile.msRoot" =  "${curMkfil}" ] || (echo Error: ran make from wrong directory && false)
-	@$(foreach d,${MS_INST} ${msBilDir} ${MS_TEST_DIR}, [ -n "$(filter ${CURDIR}/% ${CURDIR},$(abspath ${d}))" ] || (echo "Error: ${d} is outside ${CURDIR}, check .env and your environment" && false);)
+	@$(if $(filter 1,${MS_ALLOW_OUTSIDE}),,$(foreach d,${MS_INST} ${msBilDir} ${MS_TEST_DIR}, [ -n "$(filter ${CURDIR}/% ${CURDIR},$(abspath ${d}))" ] || (echo "Error: ${d} is outside ${CURDIR}, check .env and your environment (or set MS_ALLOW_OUTSIDE=1)" && false);))
 	@echo  :/
 
 
@@ -79,7 +86,8 @@ run_tests: checkRoot
 	(cd ${msSrc} && $(MAKE) -f ${msSrc}/script/Makefile.in recurseTest USE_msRecurse=1)
 
 # Failing tests are detected by non-zero exit codes (run_tests). Suspicious messages in the log files are only printed in red.
-test: checkRoot run_tests
+# testDeps: extra prerequisites (tests) of a parent project, set before including this file
+test: checkRoot ${testDeps} run_tests
 	@echo "\n\033[34m Checking the test logs: \033[0m\n"
 	@for cas in $(shell find test_runs/ -type f | grep log) ; do \
 		(! grep -3 -E '\bError\b|\bFATAL|terminate called|\bAborted|\bAborting|: error'  $${cas} ) \
