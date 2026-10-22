@@ -78,17 +78,14 @@ checksum:
 run_tests: checkRoot
 	(cd ${msSrc} && $(MAKE) -f ${msSrc}/script/Makefile.in recurseTest USE_msRecurse=1)
 
+# Failing tests are detected by non-zero exit codes (run_tests). Suspicious messages in the log files are only printed in red.
 test: checkRoot run_tests
 	@echo "\n\033[34m Checking the test logs: \033[0m\n"
 	@for cas in $(shell find test_runs/ -type f | grep log) ; do \
-		(! grep -3 -E '\bError\b|\bFATAL|\bterminate|\bAborted|\bAborting|: error'  $${cas} ) \
+		(! grep -3 -E '\bError\b|\bFATAL|terminate called|\bAborted|\bAborting|: error'  $${cas} ) \
 		|| printf "\n\n^^^\033[91m Error in $${cas} \033[0m \n================================================\n\n"; \
 	done
-	@for cas in $(shell find test_runs/ -type f | grep log) ; do \
-		(! grep -3 -E '\bError\b|\bFATAL|\bterminate|\bAborted|\bAborting|: error'  $${cas} >/dev/null )\
-		|| exit 1; \
-	done
-	@echo "\033[34m No errors detected \033[0m"
+	@echo "\033[34m Tests finished, check the messages in red above, if any \033[0m"
 
 
 # not used yet

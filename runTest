@@ -2,7 +2,7 @@
 
 # run tests using this script to allow report failure/success of the test
 
-#set -ex # exit on any error
+set -e # exit on any error, except where the exit code is read (ret=$?)
 
 tstDir=$1;   tstApp=$2;  tstInp=$3;  apsDir=$4
 
@@ -16,7 +16,7 @@ else  [ "$msRoot" == "$apsDir" ] || exit ; fi
 
 checkErr() {
   task="$(echo $1 | sed 's/log\./  /')"
-  Er=`grep -3 -E '\bError|ERROR|\bterminate|\bAborting|: error' $1 || true` # grep returns 1 (==false) if no match found
+  Er=`grep -3 -E '\bError|ERROR|terminate called|\bAborting|: error' $1 || true` # grep returns 1 (==false) if no match found
   [ "$2" == "0" ] ||  Er="  $Er\n  See $1"
 
   if [ -z "$Er" ]; then    printf  '\033[32m'"Succeed @ $task"'\033[0m\n'
@@ -48,6 +48,6 @@ logf=log.$(basename $(echo $tstApp | sed 's/ \+/_/g'))
 [ -n "$tstInp" ] && logf+=_$(basename $tstInp)
 
 echo  "$tstApp $tstInp > $tstDir/$logf "
-(cd $tstDir/ &&  $tstApp $tstInp  >$logf 2>&1);  ret=$?
+ret=0; (cd $tstDir/ &&  $tstApp $tstInp  >$logf 2>&1) || ret=$?
 checkErr "$tstDir/$logf" $ret
 exit $ret
