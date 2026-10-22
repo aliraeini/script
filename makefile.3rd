@@ -1,3 +1,9 @@
+# Third-party packages (usage: make -f makefile.3rd [package]):
+#  - a package is built only if its folder exists in $(ms3rd), e.g. zlib and libtiff are taken from the system when
+#    pkgs/zlib and pkgs/libtiff are absent (sudo apt install zlib1g-dev libtiff-dev libjpeg-dev liblzma-dev)
+#  - a package is built only if its library is not yet installed in $(MS_INST)/lib (e.g. lib/libHYPRESeq.a, lib/libpocketpy.a,
+#    lib/libfiniteVolume*.so): to rebuild a package after its sources or version changed, delete the installed library and
+#    its folder in $(msBuild) (build/hypreSeq, build/foamxm ...) first
 
 
 
@@ -32,14 +38,14 @@ libtiff:
 biltHP=$(shell [ -d ${ms3rd}/hypre/src ] && [ ! -f ${MS_INST}/lib/libHYPRE.a ] && echo Hypre)
 hyprePar:
 	[ Hypre != "$(biltHP)" ] || (mkdir -p $(msBuild)/hyprePar )
-	[ Hypre != "$(biltHP)" ] || (cd       $(msBuild)/hyprePar && cmake ${CmakeOpts}  -DHYPRE_WITH_OPENMP=ON  -DHYPRE_WITH_MPI=OFF  ${ms3rd}/hypre/src )
+	[ Hypre != "$(biltHP)" ] || (cd       $(msBuild)/hyprePar && cmake ${CmakeOpts}  -DHYPRE_WITH_OPENMP=ON -DHYPRE_ENABLE_OPENMP=ON  -DHYPRE_WITH_MPI=OFF -DHYPRE_ENABLE_MPI=OFF  ${ms3rd}/hypre/src )
 	[ Hypre != "$(biltHP)" ] || (cd       $(msBuild)/hyprePar && $(MAKE) install)
 
 
 biltH=$(shell [ -d ${ms3rd}/hypre/src ] && [ ! -f ${MS_INST}/lib/libHYPRESeq.a ] && echo HypreSq)
 hypre:
 	[ HypreSq != "$(biltH)" ] || (mkdir -p $(msBuild)/hypreSeq )
-	[ HypreSq != "$(biltH)" ] || (cd       $(msBuild)/hypreSeq && cmake  -DHYPRE_WITH_MPI=OFF  -DHYPRE_SEQUENTIAL=ON ${CmakeOpts} ${ms3rd}/hypre/src )
+	[ HypreSq != "$(biltH)" ] || (cd       $(msBuild)/hypreSeq && cmake  -DHYPRE_WITH_MPI=OFF -DHYPRE_ENABLE_MPI=OFF  -DHYPRE_SEQUENTIAL=ON ${CmakeOpts} ${ms3rd}/hypre/src )
 	[ HypreSq != "$(biltH)" ] || (cd       $(msBuild)/hypreSeq && $(MAKE) install)
 	[ HypreSq != "$(biltH)" ] || (mv    ${MS_INST}/lib/libHYPRE.a  ${MS_INST}/lib/libHYPRESeq.a)
 
