@@ -177,13 +177,13 @@ endif
 
 # set hypre directory, also gnflow multithreading -DMULTITHREAD
 ifdef USE_HYPRESEQ
- HYPREDIR=${MS_INST}
+ HYPREDIR=${MS_INST}/hypreSeq
  ifeq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
    HYPREDIR=${ms3rd}/hypre/src/hypre
  endif
  ifneq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
-  msCFLAGS += -DLIBHYPRE -DHAVE_CONFIG_H -DHYPRE_TIMING -I${HYPREDIR}/include
-  msLFLAGS += -pthread  ${HYPREDIR}/lib/libHYPRESeq.a
+  msCFLAGS := -DLIBHYPRE -DNO_MPI -DHAVE_CONFIG_H -DHYPRE_TIMING -I${HYPREDIR}/include $(msCFLAGS)  # sequential hypre: no MPI
+  msLFLAGS += -pthread  ${HYPREDIR}/lib/libHYPRE.a
  else
    $(info $(InDir))
    $(error HYPREDIR, ${HYPREDIR}/include/HYPRE.h, not found)

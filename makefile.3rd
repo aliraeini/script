@@ -42,12 +42,12 @@ hyprePar:
 	[ Hypre != "$(biltHP)" ] || (cd       $(msBuild)/hyprePar && $(MAKE) install)
 
 
-biltH=$(shell [ -d ${ms3rd}/hypre/src ] && [ ! -f ${MS_INST}/lib/libHYPRESeq.a ] && echo HypreSq)
+# sequential hypre (no MPI) in its own prefix, so that other hypre installs (e.g. with MPI) do not shadow its headers
+biltH=$(shell [ -d ${ms3rd}/hypre/src ] && [ ! -f ${MS_INST}/hypreSeq/lib/libHYPRE.a ] && echo HypreSq)
 hypre:
 	[ HypreSq != "$(biltH)" ] || (mkdir -p $(msBuild)/hypreSeq )
-	[ HypreSq != "$(biltH)" ] || (cd       $(msBuild)/hypreSeq && cmake  -DHYPRE_WITH_MPI=OFF -DHYPRE_ENABLE_MPI=OFF  -DHYPRE_SEQUENTIAL=ON ${CmakeOpts} ${ms3rd}/hypre/src )
+	[ HypreSq != "$(biltH)" ] || (cd       $(msBuild)/hypreSeq && cmake  -DHYPRE_WITH_MPI=OFF -DHYPRE_ENABLE_MPI=OFF  -DHYPRE_SEQUENTIAL=ON ${CmakeOpts} -DCMAKE_INSTALL_PREFIX=${MS_INST}/hypreSeq ${ms3rd}/hypre/src )
 	[ HypreSq != "$(biltH)" ] || (cd       $(msBuild)/hypreSeq && $(MAKE) install)
-	[ HypreSq != "$(biltH)" ] || (mv    ${MS_INST}/lib/libHYPRE.a  ${MS_INST}/lib/libHYPRESeq.a)
 
 #hypreDbg:
 #	(cp -r hypre-2.11.2 hypre-2.11.2Dbg)
