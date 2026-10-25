@@ -75,7 +75,7 @@ ifdef MS_VERSION
   msCFLAGS += -DMS_VERSION=${MS_VERSION}
 endif
 
-msCFLAGS += -I${msSrc}/include -I${MS_INST}/include -DRELEASE_DATE=$(msReleaseDate) -D_FILE_OFFSET_BITS=64
+msCFLAGS += -I${IMAGE3KIT_DIR}/common -I${MS_INST}/include -DRELEASE_DATE=$(msReleaseDate) -D_FILE_OFFSET_BITS=64
 msLFLAGS += -L$(msLibDir)
 
 
@@ -96,18 +96,6 @@ ifeq (${USE_VOX_IMG},1)
     msCFLAGS += -DVOX_BASIC
   endif # USE_VOX_FULL
 endif # USE_VOX_IMG
-
-ifeq (${USE_VXIMG},1)
- ifndef USED_VXLIB
-  ifeq (${MS_VERSION},2)
-    msCFLAGS += -I${msSrc}/libvoxel
-    srcs += ${msSrc}/libvoxel/voxelImage.cpp  ${msSrc}/libvoxel/vxlPro.cpp
-  else
-    $(warning Using outdated script)
-    msCFLAGS += -I${msSrc}/libvoxel
-  endif
- endif # USED_VXLIB
-endif # USE_VXIMG
 
 
 
@@ -207,10 +195,12 @@ endif
 
 # svplot not public domain yet
 ifdef USE_SVG
- ifneq ("$(wildcard ${ms3rd}/svplot/svplot.hpp)","")
+ ifneq ("$(wildcard ${IMAGE3KIT_DIR}/pkgs/svplot/svplot.hpp)","")
+   msCFLAGS += -I${IMAGE3KIT_DIR}/pkgs/svplot -DSVG
+ else ifneq ("$(wildcard ${ms3rd}/svplot/svplot.hpp)","")
    msCFLAGS += -I${ms3rd}/svplot -DSVG
  else
-   $(info $(InDir) ignoring USE_SVG, ${ms3rd}/svplot/svplot.hpp, not found)
+   $(info $(InDir) ignoring USE_SVG, svplot.hpp not found in ${IMAGE3KIT_DIR}/pkgs/svplot nor ${ms3rd}/svplot)
  endif
 endif
 
@@ -354,17 +344,13 @@ endif  # USE_MINIFOAMX3
 ifdef   USE_msRecurse
 
 makls=$(shell find */ -maxdepth 1 -type f | grep -e    /makefile$$     | grep -v [\ \(\)] | grep -v [-]/ | sed s/\\/makefile//g)
-# image3kit is a library (with its own tests), only its tools are built here, after libvoxel as they have the same names
+# image3kit is a library (with its own tests), only its tools are built here
 # (written with __ for /, as make pattern rules do not match names with a /), only in the top src folder
 ifeq (${CURDIR},${msSrc})
- msExtraMakes ?= image3kit__vxlToFoam image3kit__voxapp image3kit__vxlToSurf
+ # only if these folders exist in msSrc (not in a parent project which keeps image3kit elsewhere)
+ msExtraMakes ?= $(foreach d,vxlToFoam voxapp vxlToSurf,$(if $(wildcard ${msSrc}/image3kit/$d/Makefile),image3kit__$d))
 endif
 makes=$(shell find */ -maxdepth 1 -type f | grep -e    /Makefile$$     | grep -v [\ \(\)] | grep -v [-]/ | sed s/\\/Makefile//g | grep -v -x image3kit) ${msExtraMakes}
-make_image3kit__vxlToFoam make_image3kit__voxapp make_image3kit__vxlToSurf: make_libvoxel
-make_image3kit__vxlToSurf: make_porefoam2f
-make_image3kit__vxlToFoam make_image3kit__vxlToSurf: export MS_VERSION=2
-# same executable and source file names as in porefoam2f/utilities, keep the objects apart
-make_image3kit__vxlToSurf: export bildDir=$(msBilDir)/image3kit_vxlToSurf
 
 recurseMake:
 	@$(MAKE) -f ${msSrc}/script/Makefile.in recurseMakeLibs USE_msRecurse=1
@@ -403,10 +389,9 @@ endif  # USE_msRecurse
 ################ single-source .cpp app ##################:
 ifdef   USE_SINGLECPP
 
-ifndef MS_VERSION # v1 / ICL codes
+ifndef mains # v1 / ICL codes: one app per source file, unless the Makefile lists the apps in mains
   mains := $(srcs:.cpp=)
   srcs :=
-  $(warning srcs ${srcs}   mains ${mains})
 all: $(mains)
 endif
 

@@ -115,6 +115,6 @@ any user data --these are removed by the `make distclean` command.
 
  In `Makefile`s, define the variable `tsts` together with `USE_msTEST=1`
  and `srcs` with `USE_msMAKE=1`. If not defined, `srcs` will be set
- to all `.cpp` files. Example Makefiles can be found in `libvoxel`
+ to all `.cpp` files. Example Makefiles can be found in `image3kit/vxlToFoam`
  (single `source.cpp` apps) or `pnextract` (multiple `source.cpp` files).
 
