@@ -8,7 +8,7 @@ export msRoot ?= ${CURDIR}
 # msSrc: folder with script/ (this folder in a flat checkout, else ./src)
 export msSrc ?= $(if $(wildcard ${CURDIR}/script/Makefile.in),${CURDIR},${CURDIR}/src)
 export ms3rd ?= $(if $(wildcard ${msRoot}/pkgs),${msRoot}/pkgs,${msSrc}/pkgs)
-export msTree ?= $(if $(filter src,$(notdir ${msSrc})),$(notdir $(abspath ${msSrc}/..)),$(notdir ${msSrc}))
+export msTree := $(if $(filter src,$(notdir ${msSrc})),$(notdir $(abspath ${msSrc}/..)),$(notdir ${msSrc}))
 
 # Use .env file to set MS_INST, MS_TEST_DIR and/or msBilDir vars
 ifneq ($(wildcard ${msRoot}/.env),)

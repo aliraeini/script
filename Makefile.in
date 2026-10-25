@@ -39,7 +39,8 @@ endif
 # if msSrc is called src (porescale in a parent project, or the old layout <root>/src/script). Set msRoot to override.
 export msRoot ?= $(if $(filter src,$(notdir ${msSrc})),$(abspath ${msSrc}/..),${msSrc})
 # name of this source tree in the build folder, keeps the objects of same-named modules of different trees apart
-export msTree ?= $(if $(filter src,$(notdir ${msSrc})),$(notdir $(abspath ${msSrc}/..)),$(notdir ${msSrc}))
+# (always derived from msSrc, an inherited value would be wrong when a parent project builds this one)
+export msTree := $(if $(filter src,$(notdir ${msSrc})),$(notdir $(abspath ${msSrc}/..)),$(notdir ${msSrc}))
 
 # Use .env file to set MS_INST, MS_TEST_DIR and/or msBilDir vars
 ifneq ($(wildcard ${msRoot}/.env),)
