@@ -35,34 +35,43 @@ ifndef msSrc  # set msSrc to upper directory if not already set
  $(info msSrc set to ${msSrc})
 endif
 
+# msRoot (the folder with .env, and with inst/, build/ and test_runs/ by default) is msSrc itself, or the folder above
+# if msSrc is called src (porescale in a parent project, or the old layout <root>/src/script). Set msRoot to override.
+export msRoot ?= $(if $(filter src,$(notdir ${msSrc})),$(abspath ${msSrc}/..),${msSrc})
+# name of this source tree in the build folder, keeps the objects of same-named modules of different trees apart
+export msTree ?= $(if $(filter src,$(notdir ${msSrc})),$(notdir $(abspath ${msSrc}/..)),$(notdir ${msSrc}))
+
 # Use .env file to set MS_INST, MS_TEST_DIR and/or msBilDir vars
-ifneq ($(wildcard ${msSrc}/../.env),)
-  include ${msSrc}/../.env
+ifneq ($(wildcard ${msRoot}/.env),)
+  include ${msRoot}/.env
 endif
 
 # set msBinDir if not set, MS_INST is also set from .msRoot for .exe OPT
-export MS_INST ?= $(abspath ${msSrc}/..)
-export msRoot ?= $(abspath ${msSrc}/..)
+export MS_INST ?= ${msRoot}/inst
 export msBinDir ?= ${MS_INST}/bin
 export msLibDir ?= ${MS_INST}/lib
-export msBilDir ?= ${MS_INST}/build
-export MS_TEST_DIR ?= ${MS_INST}/test_runs
+export msBilDir ?= ${msRoot}/build
+export MS_TEST_DIR ?= ${msRoot}/test_runs
 
 
 # set thirdparty pkgs directory if not set
-# pocketpy checkout, set POCKETPY_DIR in .env to use another one
-POCKETPY_DIR ?= ${msRoot}/pkgs/pocketpy
-
-# image3kit checkout, set IMAGE3KIT_DIR in .env to use another one
-IMAGE3KIT_DIR ?= ${msSrc}/image3kit
-
 ifndef ms3rd
   ifneq ("$(wildcard ${msRoot}/pkgs/)","")
    ms3rd := ${msRoot}/pkgs
+  else ifneq ("$(wildcard ${msSrc}/pkgs/)","")
+   ms3rd := ${msSrc}/pkgs
   else
    $(warning ms3rd not set ${ms3rd})
   endif
 endif
+
+# checkouts of the dependencies, set these in .env to use other ones
+# pocketpy checkout
+POCKETPY_DIR ?= $(or ${ms3rd},${msRoot}/pkgs)/pocketpy
+HYPRE_SRC ?= ${ms3rd}/hypre
+FOAMXM_SRC ?= ${ms3rd}/foamxm
+# image3kit checkout
+IMAGE3KIT_DIR ?= ${msSrc}/image3kit
 
 
 ifneq ($(MAKECMDGOALS),clean) ############### if not cleaning  ###############:
@@ -162,7 +171,7 @@ endif
 ifdef USE_HYPRE
  HYPREDIR=${MS_INST}
  ifeq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
-   HYPREDIR=${ms3rd}/hypre/src/hypre
+   HYPREDIR=${HYPRE_SRC}/src/hypre
  endif
  ifneq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
   msCFLAGS += -DHAVE_CONFIG_H -DHYPRE_TIMING -I${HYPREDIR}/include
@@ -179,7 +188,7 @@ endif
 ifdef USE_HYPRESEQ
  HYPREDIR=${MS_INST}/hypreSeq
  ifeq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
-   HYPREDIR=${ms3rd}/hypre/src/hypre
+   HYPREDIR=${HYPRE_SRC}/src/hypre
  endif
  ifneq ("$(wildcard ${HYPREDIR}/include/HYPRE.h)","")
   msCFLAGS := -DLIBHYPRE -DNO_MPI -DHAVE_CONFIG_H -DHYPRE_TIMING -I${HYPREDIR}/include $(msCFLAGS)  # sequential hypre: no MPI
@@ -247,7 +256,7 @@ ifndef exec
 endif
 
 ##### Utilities map between build objects nad source files #####
-bildDir ?= ${msBilDir}/${exec}
+bildDir ?= ${msBilDir}/${msTree}/${exec}
 toBild = $(addprefix ${bildDir}/${1},$(subst /,__,$(subst ..,^^,${2})))
 toSorc = $(subst ${bildDir}/${1},,$(subst __,/,$(subst ^^,..,${2})))
 
@@ -284,8 +293,8 @@ ifdef USE_MINIFOAMX3
   WM_ARCH ?= linux64
   GFLAGS = -DWM_LABEL_SIZE=32
 
- ifneq ("$(wildcard ${ms3rd}/foamxm)","")
-  WM_PROJECT_DIR ?= ${ms3rd}/foamxm
+ ifneq ("$(wildcard ${FOAMXM_SRC})","")
+  WM_PROJECT_DIR ?= ${FOAMXM_SRC}
   WM_PROJECT ?= foam
   WM_OSTYPE  ?= POSIX
   SO         ?= ext3.so
@@ -427,7 +436,7 @@ msCmakeFLAGS +=  -DCMAKE_INSTALL_PREFIX=${MS_INST}
 ################## compile Cmake app/lib ##################:
 ifdef USE_msCMAKE
 msCApp:
-	@cmake -S$(makFilDir) -B${bildDir} -DmsSrc=${msSrc} $(msCmakeFLAGS);
+	@cmake -S$(makFilDir) -B${bildDir} -DmsSrc=${msSrc} -Dms3rd=${ms3rd} -DIMAGE3KIT_DIR=${IMAGE3KIT_DIR} $(msCmakeFLAGS);
 	(cd ${bildDir} && $(MAKE)        )  || echo ${exec} not built, continuing anyway
 	(cd ${bildDir} && $(MAKE) install)  || echo ${exec} not built, continuing anyway
 clean: ; cd ${bildDir} && $(MAKE) clean && rm -rf ${bildDir}

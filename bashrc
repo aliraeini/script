@@ -9,15 +9,16 @@ if [  -n "$MS_INST" ] && [  "$PATH" == *"$MS_INST/bin"* ]; then
 else
 
 	export msSrc="$myUprDIR"
-	export msRoot=$( cd "$msSrc/../" && pwd )
+	# msRoot (.env, inst/, build/, test_runs/) is msSrc, or the folder above it if msSrc is called src, as in Makefile.in
+	if [ "$(basename "$msSrc")" == "src" ]; then export msRoot=$( cd "$msSrc/../" && pwd ); else export msRoot="$msSrc"; fi
 	if [ -f "$msRoot/.env" ]; then set -a; source "$msRoot/.env"; set +a; fi
-	export MS_INST=${MS_INST:-$msRoot}
+	export MS_INST=${MS_INST:-$msRoot/inst}
 	[ "$MS_INST" != "$HOME" ] || ! echo "Bad MS_INST: $MS_INST, put apps inside another subfolder and try again" || return
 	export msBinDir=$MS_INST/bin
 	export msLibDir=$MS_INST/lib
 	export msIncDir=$MS_INST/include
-	export msBilDir=${msBilDir:-$MS_INST/build}
-	export MS_TEST_DIR=${MS_TEST_DIR:-$MS_INST/test_runs}
+	export msBilDir=${msBilDir:-$msRoot/build}
+	export MS_TEST_DIR=${MS_TEST_DIR:-$msRoot/test_runs}
 
 	# prepend, so that these binaries take precedence over any other installation
 	export PATH=$msBinDir:$msBinDir/foamxm:$msSrc/script:$msSrc/porefoam1f/script:$msSrc/porefoam2f/script:$PATH

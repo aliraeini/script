@@ -2,8 +2,8 @@
 
 ## Compiling (legacy) code
 
-To compile, open a terminal in the uppermost directory, where the `src` and `pkgs`
-folders are located, and run:
+To compile, open a terminal in the uppermost directory (the "root", where the `src`
+and `pkgs` folders are located, or, in a flat checkout, `script` and `pkgs`), and run:
 
  `make -j`
 
@@ -11,10 +11,14 @@ To test the compilation, run:
 
  `make test`
 
-All build, install, and test outputs stay inside the top directory: the
-locations `MS_INST` (bin, lib, include), `msBilDir` (build), and `MS_TEST_DIR`
-(test results) can be set in a `.env` file there (see `.env.example`), and
-must be inside that directory; otherwise, `make` stops.
+All build, install, and test outputs stay inside the top directory: by default
+`inst/` (`MS_INST`: bin, lib, include), `build/` (`msBilDir`, one subfolder per
+source tree) and `test_runs/` (`MS_TEST_DIR`). They can be set in a `.env` file
+there (see `.env.example`), and must be inside that directory unless
+`MS_ALLOW_OUTSIDE=1`; otherwise, `make` stops. The root is the folder that contains
+`script/`, or the folder above if that folder is called `src`; set `msRoot` to override.
+The locations of the dependencies (`ms3rd` for `pkgs`, `HYPRE_SRC`, `FOAMXM_SRC`,
+`POCKETPY_DIR`, `IMAGE3KIT_DIR`) can be set in `.env` too.
 
 Once everything has compiled successfully, to clean the temporary files, run:
 

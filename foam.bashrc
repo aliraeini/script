@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-[ -n "$msBinDir" ] || echo source $(dirname "${BASH_SOURCE[0]}")/../bashrc
-[ -n "$msBinDir" ] || source $(dirname "${BASH_SOURCE[0]}")/../bashrc
+[ -n "$msBinDir" ] || echo source $(dirname "${BASH_SOURCE[0]}")/bashrc
+[ -n "$msBinDir" ] || source $(dirname "${BASH_SOURCE[0]}")/bashrc
 echo "msBinDir: $msBinDir"
 
 if [ -z "$WM_PROJECT" ] ; then
@@ -11,7 +11,7 @@ if [ -z "$WM_PROJECT" ] ; then
 	#export WM_NCOMPPROCS=28
 	#export FOAM_INST_DIR=$(cd $myUpperDIR/../pkgs && pwd)
 	export FOAM_INST_DIR=${ms3rd:-$msRoot/pkgs}
-	source $FOAM_INST_DIR/foamxm/etc/bashrc
+	source ${FOAMXM_SRC:-$FOAM_INST_DIR/foamxm}/etc/bashrc
 elif [[ "$WM_PROJECT_DIR" != "$msRoot/"*"/foamxm" ]]; then
 	printf "\n *** Using OpenFOAM:  $WM_PROJECT_DIR"
 	printf "\n *** If you meant to use foamxm instead, deactivate this and re-source in a new terminal.\n\n"

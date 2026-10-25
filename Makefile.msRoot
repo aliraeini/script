@@ -5,21 +5,25 @@
 curMkfil:=$(lastword $(MAKEFILE_LIST))
 
 export msRoot ?= ${CURDIR}
-export msSrc ?= ${CURDIR}/src
-export ms3rd ?= ${CURDIR}/pkgs
+# msSrc: folder with script/ (this folder in a flat checkout, else ./src)
+export msSrc ?= $(if $(wildcard ${CURDIR}/script/Makefile.in),${CURDIR},${CURDIR}/src)
+export ms3rd ?= $(if $(wildcard ${msRoot}/pkgs),${msRoot}/pkgs,${msSrc}/pkgs)
+export msTree ?= $(if $(filter src,$(notdir ${msSrc})),$(notdir $(abspath ${msSrc}/..)),$(notdir ${msSrc}))
 
 # Use .env file to set MS_INST, MS_TEST_DIR and/or msBilDir vars
-ifneq ($(wildcard ${CURDIR}/.env),)
-  include ${CURDIR}/.env
+ifneq ($(wildcard ${msRoot}/.env),)
+  include ${msRoot}/.env
 endif
 
 ifdef HWLOC_COMPONENTS
   export HWLOC_COMPONENTS  # e.g. -opencl, see .env.example
 endif
 export POCKETPY_DIR ?= ${ms3rd}/pocketpy
-export MS_INST ?= $(abspath ${msSrc}/..)
-export msBilDir ?= ${MS_INST}/build
-export MS_TEST_DIR ?= ${MS_INST}/test_runs
+export HYPRE_SRC ?= ${ms3rd}/hypre
+export FOAMXM_SRC ?= ${ms3rd}/foamxm
+export MS_INST ?= ${msRoot}/inst
+export msBilDir ?= ${msRoot}/build
+export MS_TEST_DIR ?= ${msRoot}/test_runs
 export LD_LIBRARY_PATH := ${MS_INST}/lib:$(LD_LIBRARY_PATH)
 export PATH := ${MS_INST}/bin:${MS_INST}/bin/foamxm:$(PATH)
 
@@ -57,7 +61,7 @@ mgw:            checkRoot
 clean:          checkRoot
 	(cd ${ms3rd} && $(MAKE) -f ${msSrc}/script/makefile.3rd  clean)
 	(cd ${msSrc} && $(MAKE) -f ${msSrc}/script/Makefile.in recurseClean USE_msRecurse=1)
-	rm -rf  ${MS_INST}/build ${msSrc}/*/__pycache__  log.make
+	rm -rf  ${msBilDir}/${msTree} ${msSrc}/*/__pycache__  log.make
 
 distclean:      checkRoot clean
 	@echo "\n\nWarning:\n\n   deleting log.make, bin/, include/, lib/, share/ and test/, in 10s\n"
@@ -67,8 +71,8 @@ distclean:      checkRoot clean
 	(cd ${ms3rd} && $(MAKE) -f ${msSrc}/script/makefile.3rd  distclean)
 
 checkRoot:
-	@echo  "src/script/Makefile.msRoot == ${curMkfil}? "
-	@[ "src/script/Makefile.msRoot" =  "${curMkfil}" ] || (echo Error: ran make from wrong directory && false)
+	@echo  "${msSrc}/script/Makefile.msRoot == $(abspath ${curMkfil})? "
+	@[ "$(abspath ${msSrc}/script/Makefile.msRoot)" = "$(abspath ${curMkfil})" ] || (echo Error: ran make from wrong directory && false)
 	@$(if $(filter 1,${MS_ALLOW_OUTSIDE}),,$(foreach d,${MS_INST} ${msBilDir} ${MS_TEST_DIR}, [ -n "$(filter ${CURDIR}/% ${CURDIR},$(abspath ${d}))" ] || (echo "Error: ${d} is outside ${CURDIR}, check .env and your environment (or set MS_ALLOW_OUTSIDE=1)" && false);))
 	@echo  :/
 
@@ -100,7 +104,6 @@ test: checkRoot ${testDeps} run_tests
 installDir?=$(HOME)/.local/
 install:
 	mkdir -p $(installDir)bin/
-	cp -rp bin  $(installDir)
-	cp -rp lib  $(installDir)
-	cp -p  src/bashrc  $(installDir)bin/
-	cp -rp src/script $(installDir)bin/
+	cp -rp ${MS_INST}/bin  $(installDir)
+	cp -rp ${MS_INST}/lib  $(installDir)
+	cp -rp ${msSrc}/script $(installDir)bin/

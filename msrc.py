@@ -28,7 +28,8 @@ if "MS_INST" in msEnv and "PATH" in msEnv and os.path.join(msEnv["MS_INST"],"bin
 else :
 	print(("Setting msSrc:",msSrc))
 	sep=os.pathsep;
-	MS_INST = os.path.abspath(msSrc+"/..")
+	msRoot = os.path.dirname(msSrc) if os.path.basename(msSrc)=="src" else msSrc # same rule as in bashrc
+	MS_INST = msEnv.get("MS_INST") or os.path.join(msRoot,"inst")
 	msEnv["PATH"] = msEnv["PATH"] +sep+ msSrc+"/script"
 	msEnv["PATH"] = msEnv["PATH"] +sep+ msSrc+"/porefoam1f/script"
 	msEnv["PATH"] = msEnv["PATH"] +sep+ msSrc+"/porefoam2f/script"

@@ -7,24 +7,27 @@
 
 
 
-allSubdirs:=$(shell ls -d zlib libtiff hypre foamxm 2>/dev/null)
+# when run by hand (cd pkgs && make -f ../script/makefile.3rd), Makefile.msRoot exports these
+ms3rd ?= ${CURDIR}
+export msSrc ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
+export msRoot ?= $(abspath ${ms3rd}/..)
+export MS_INST ?= ${msRoot}/inst
+export msBilDir ?= ${msRoot}/build
+HYPRE_SRC ?= ${ms3rd}/hypre
+FOAMXM_SRC ?= ${ms3rd}/foamxm
+$(info msRoot: ${msRoot}   ***   MS_INST: ${MS_INST} *** OPT: ${OPT})
+$(info ms3rd set to ${ms3rd})
+
+allSubdirs:=$(foreach d,zlib libtiff,$(if $(wildcard ${ms3rd}/$d),$d)) $(if $(wildcard ${HYPRE_SRC}/src),hypre) $(if $(wildcard ${FOAMXM_SRC}),foamxm)
 $(info Thirdparty: $(allSubdirs) )
 all: $(allSubdirs)
 
 
 .PHONY:  clean pocketpy $(allSubdirs)
 
-export msRoot ?= $(abspath ..)
-export MS_INST ?= $(abspath ..)
-$(info msRoot: ${msRoot}   ***   MS_INST: ${MS_INST} *** OPT: ${OPT})
+msBuild=${msBilDir}/pkgs
 
-msBuild=${MS_INST}/build
-
-CmakeOpts= -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SHARED_LIBS=False  -DCMAKE_INSTALL_PREFIX=${MS_INST}  -DCMAKE_TOOLCHAIN_FILE=${msRoot}/src/script/toolchain${OPT}.txt
-
-
-ms3rd ?= ${CURDIR}
-$(info ms3rd set to ${ms3rd})
+CmakeOpts= -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SHARED_LIBS=False  -DCMAKE_INSTALL_PREFIX=${MS_INST}  -DCMAKE_TOOLCHAIN_FILE=${msSrc}/script/toolchain${OPT}.txt
 
 
 
@@ -35,18 +38,18 @@ libtiff:
 	[ Tiff != "$(biltT)" ] || (cd       $(msBuild)/libtif && $(MAKE) install)
 
 
-biltHP=$(shell [ -d ${ms3rd}/hypre/src ] && [ ! -f ${MS_INST}/lib/libHYPRE.a ] && echo Hypre)
+biltHP=$(shell [ -d ${HYPRE_SRC}/src ] && [ ! -f ${MS_INST}/lib/libHYPRE.a ] && echo Hypre)
 hyprePar:
 	[ Hypre != "$(biltHP)" ] || (mkdir -p $(msBuild)/hyprePar )
-	[ Hypre != "$(biltHP)" ] || (cd       $(msBuild)/hyprePar && cmake ${CmakeOpts}  -DHYPRE_WITH_OPENMP=ON -DHYPRE_ENABLE_OPENMP=ON  -DHYPRE_WITH_MPI=OFF -DHYPRE_ENABLE_MPI=OFF  ${ms3rd}/hypre/src )
+	[ Hypre != "$(biltHP)" ] || (cd       $(msBuild)/hyprePar && cmake ${CmakeOpts}  -DHYPRE_WITH_OPENMP=ON -DHYPRE_ENABLE_OPENMP=ON  -DHYPRE_WITH_MPI=OFF -DHYPRE_ENABLE_MPI=OFF  ${HYPRE_SRC}/src )
 	[ Hypre != "$(biltHP)" ] || (cd       $(msBuild)/hyprePar && $(MAKE) install)
 
 
 # sequential hypre (no MPI) in its own prefix, so that other hypre installs (e.g. with MPI) do not shadow its headers
-biltH=$(shell [ -d ${ms3rd}/hypre/src ] && [ ! -f ${MS_INST}/hypreSeq/lib/libHYPRE.a ] && echo HypreSq)
+biltH=$(shell [ -d ${HYPRE_SRC}/src ] && [ ! -f ${MS_INST}/hypreSeq/lib/libHYPRE.a ] && echo HypreSq)
 hypre:
 	[ HypreSq != "$(biltH)" ] || (mkdir -p $(msBuild)/hypreSeq )
-	[ HypreSq != "$(biltH)" ] || (cd       $(msBuild)/hypreSeq && cmake  -DHYPRE_WITH_MPI=OFF -DHYPRE_ENABLE_MPI=OFF  -DHYPRE_SEQUENTIAL=ON ${CmakeOpts} -DCMAKE_INSTALL_PREFIX=${MS_INST}/hypreSeq ${ms3rd}/hypre/src )
+	[ HypreSq != "$(biltH)" ] || (cd       $(msBuild)/hypreSeq && cmake  -DHYPRE_WITH_MPI=OFF -DHYPRE_ENABLE_MPI=OFF  -DHYPRE_SEQUENTIAL=ON ${CmakeOpts} -DCMAKE_INSTALL_PREFIX=${MS_INST}/hypreSeq ${HYPRE_SRC}/src )
 	[ HypreSq != "$(biltH)" ] || (cd       $(msBuild)/hypreSeq && $(MAKE) install)
 
 #hypreDbg:
@@ -77,11 +80,11 @@ libpng:
 	[ lPng  != "$(lPng)" ] || (cd  ${ms3rd}/libpng && $(MAKE) all OPT=${OPT})
 
 ifneq "${OPT}" ".exe"
-biltF=$(shell [ -d foamxm ] && [ ! -f ${MS_INST}/lib/libfiniteVolume*.so ] && echo Foam)
+biltF=$(shell [ -d ${FOAMXM_SRC} ] && [ ! -f ${MS_INST}/lib/libfiniteVolume*.so ] && echo Foam)
 foamxm:
 	@echo biltF: $(biltF)
 	+ [ Foam  != "$(biltF)" ] || (mkdir -p ${msBuild}/foamxm                      ) || echo  skipping mkdir foamxm
-	+ [ Foam  != "$(biltF)" ] || (rsync -art --update foamxm ${msBuild}/          ) || echo  skipping rsync foamxm
+	+ [ Foam  != "$(biltF)" ] || (rsync -art --update ${FOAMXM_SRC}/ ${msBuild}/foamxm/ ) || echo  skipping rsync foamxm
 	+ [ Foam  != "$(biltF)" ] || (cd ${msBuild}/foamxm  && ./AllMak${OPT}e        ) || echo  skipping AllMak${OPT}e foamxm
 	[   Foam  != "$(biltF)" ] || (cd ${msBuild}/foamxm  && ./AllInstall  ${MS_INST}) || echo  skipping AllInstall foamxm
 else
@@ -89,7 +92,7 @@ foamxm:; @echo skipping foamxm
 endif
 
 clean:
-	(cd foamxm  2>/dev/null  &&  ./AllDistclean) || echo !!
+	(cd ${FOAMXM_SRC}  2>/dev/null  &&  ./AllDistclean) || echo !!
 
 distclean:
-	(cd foamxm  2>/dev/null  &&  ./AllDistclean) || echo !!
+	(cd ${FOAMXM_SRC}  2>/dev/null  &&  ./AllDistclean) || echo !!

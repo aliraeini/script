@@ -7,11 +7,14 @@ set -e # exit on any error, except where the exit code is read (ret=$?)
 tstDir=$1;   tstApp=$2;  tstInp=$3;  apsDir=$4
 
 
-[ -n "$apsDir" ] || apsDir=$(cd "$(dirname ${BASH_SOURCE[0]})/../.." && pwd)
+scrDir=$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)
+if [ -z "$apsDir" ]; then # msRoot, same rule as in bashrc
+  if [ "$(basename "$(dirname "$scrDir")")" == "src" ]; then apsDir=$(dirname "$(dirname "$scrDir")"); else apsDir=$(dirname "$scrDir"); fi
+fi
 
 if [ -z "$MS_INST" ] || ! [  "$PATH" == *"$MS_INST/bin"* ] ; then
-  echo "source $apsDir/src/script/bashrc # from run test";
-  source ${apsDir}/src/script/bashrc
+  echo "source $scrDir/bashrc # from run test";
+  source ${scrDir}/bashrc
 else  [ "$msRoot" == "$apsDir" ] || exit ; fi
 
 checkErr() {
@@ -30,7 +33,7 @@ checkErr() {
 usage() {
   printf "Usage:\n  runTest tstDir   tstApp  tstInp  apsDir
   \nExamples:
-    $0  /mnt/ramd/tst/Gao2017GNM  gnrun  $msRoot/src/gnm/script/Gao2017_gnrun.sin  $msRoot
+    $0  /mnt/ramd/tst/Gao2017GNM  gnrun  $msSrc/gnm/script/Gao2017_gnrun.sin  $msRoot
     $0  $msRoot  make
     $0  $msRoot  'make dbg'  '' $msRoot
     $0  $msRoot  'make .exe' '' $msRoot\n"
