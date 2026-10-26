@@ -12,6 +12,8 @@ else
 	# msRoot (.env, inst/, build/, test_runs/) is msSrc, or the folder above it if msSrc is called src, as in Makefile.in
 	if [ "$(basename "$msSrc")" == "src" ]; then export msRoot=$( cd "$msSrc/../" && pwd ); else export msRoot="$msSrc"; fi
 	if [ -f "$msRoot/.env" ]; then set -a; source "$msRoot/.env"; set +a; fi
+	# third-party packages: $msSrc/pkgs (porescale), else $msRoot/pkgs
+	if [ -z "$ms3rd" ]; then if [ -d "$msSrc/pkgs" ]; then export ms3rd="$msSrc/pkgs"; else export ms3rd="$msRoot/pkgs"; fi; fi
 	export MS_INST=${MS_INST:-$msRoot/inst}
 	[ "$MS_INST" != "$HOME" ] || ! echo "Bad MS_INST: $MS_INST, put apps inside another subfolder and try again" || return
 	export msBinDir=$MS_INST/bin
