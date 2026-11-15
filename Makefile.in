@@ -318,7 +318,7 @@ ifdef USE_MINIFOAMX3
   LIB_SRC            = $(WM_PROJECT_DIR)/src
   GFLAGS     += -D$(WM_ARCH) -DWM_$(WM_PRECISION_OPTION)
 
-  GFLAGS += -Wall -Wextra -Wno-unused-parameter -Wnon-virtual-dtor  -DNoRepository -ftemplate-depth-200
+  GFLAGS += -Wall -Wextra -Wno-unused-parameter -Wno-overloaded-virtual -Wnon-virtual-dtor  -DNoRepository -ftemplate-depth-200
 
   msCFLAGS += $(PFLAGS) $(PINC) $(GFLAGS)
   #$(info  using of=$(OFInsDIR) msCFLAGS=$(msCFLAGS) )
